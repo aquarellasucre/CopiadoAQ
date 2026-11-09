@@ -27,6 +27,8 @@ jobs:
           gradle-version: '8.9'
 
       - name: Construir APK
+        env:
+          COPIAR_AQ_TOKEN: ${{ secrets.COPIAR_AQ_TOKEN }}
         run: gradle assembleDebug --stacktrace
 
       - name: Publicar APK
