@@ -1,4 +1,3 @@
-
 package bo.aquarella.copiar
 
 import android.app.Activity
@@ -7,9 +6,22 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Base64
 import android.widget.Toast
+import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import kotlin.concurrent.thread
 
 class MainActivity : Activity() {
+
+    companion object {
+        private const val APPS_SCRIPT_URL =
+            "https://script.google.com/macros/s/AKfycbyNOQpKypyMCnsg0bCOZPMHDX87Bx9HiFqyBf0Rew8kpnTNOMmmzReJsjxr-N6QGWos/exec"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,14 +36,10 @@ class MainActivity : Activity() {
 
     private fun handleIntent(sourceIntent: Intent?) {
         when (sourceIntent?.data?.host) {
-
             "copy" -> handleCopyIntent(sourceIntent)
-
             "pdf" -> handlePdfIntent(sourceIntent)
-
             else -> {
                 val text = sourceIntent?.getStringExtra("text")
-
                 if (!text.isNullOrEmpty()) {
                     copyText(text)
                 } else {
@@ -76,7 +84,7 @@ class MainActivity : Activity() {
         finish()
     }
 
-    // MÓDULO 2: PDF (PRIMERA PRUEBA)
+    // MÓDULO 2: DESCARGA DE PDF
     private fun handlePdfIntent(sourceIntent: Intent?) {
         val pedido = sourceIntent?.data?.getQueryParameter("pedido")
 
@@ -90,12 +98,119 @@ class MainActivity : Activity() {
             return
         }
 
+        val token = BuildConfig.COPIAR_AQ_TOKEN
+
+        if (token.isBlank()) {
+            Toast.makeText(
+                this,
+                "Falta configurar el acceso al servidor",
+                Toast.LENGTH_LONG
+            ).show()
+            finish()
+            return
+        }
+
         Toast.makeText(
             this,
-            "Solicitud PDF recibida: $pedido",
+            "Descargando PDF de $pedido...",
             Toast.LENGTH_LONG
         ).show()
 
-        finish()
+        thread {
+            try {
+                val url = URL(
+                    APPS_SCRIPT_URL +
+                    "?token=" + URLEncoder.encode(token, "UTF-8") +
+                    "&pedido=" + URLEncoder.encode(pedido, "UTF-8")
+                )
+
+                val connection =
+                    url.openConnection() as HttpURLConnection
+
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 30000
+                connection.readTimeout = 60000
+                connection.instanceFollowRedirects = true
+
+                val responseCode = connection.responseCode
+
+                val response = if (responseCode in 200..299) {
+                    connection.inputStream
+                } else {
+                    connection.errorStream
+                }
+
+                val responseText = response.bufferedReader().use {
+                    it.readText()
+                }
+
+                connection.disconnect()
+
+                if (responseCode !in 200..299) {
+                    throw Exception("Error HTTP $responseCode")
+                }
+
+                val json = JSONObject(responseText)
+
+                if (!json.optBoolean("ok")) {
+                    throw Exception(
+                        json.optString(
+                            "mensaje",
+                            "El servidor rechazó la solicitud"
+                        )
+                    )
+                }
+
+                val contenido = json.optString("contenido")
+
+                if (contenido.isBlank()) {
+                    throw Exception("El servidor no entregó el PDF")
+                }
+
+                val pdfBytes = Base64.decode(
+                    contenido,
+                    Base64.DEFAULT
+                )
+
+                if (pdfBytes.isEmpty()) {
+                    throw Exception("El PDF está vacío")
+                }
+
+                val nombreOriginal = json.optString(
+                    "nombre",
+                    "Pedido_$pedido.pdf"
+                )
+
+                val nombreSeguro = nombreOriginal.replace(
+                    Regex("[^A-Za-z0-9._-]"),
+                    "_"
+                )
+
+                val archivo = File(cacheDir, nombreSeguro)
+
+                FileOutputStream(archivo).use {
+                    it.write(pdfBytes)
+                }
+
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "PDF descargado correctamente: ${pdfBytes.size} bytes",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    finish()
+                }
+
+            } catch (error: Exception) {
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Error al descargar PDF: ${error.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    finish()
+                }
+            }
+        }
     }
 }
