@@ -27,7 +27,7 @@ jobs:
           gradle-version: '8.9'
 
       - name: Construir APK
-        run: gradle assembleDebug
+        run: gradle assembleDebug --stacktrace
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4
