@@ -1,5 +1,7 @@
 package bo.aquarella.copiar
 
+import android.graphics.Canvas
+import android.graphics.Color
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -263,6 +265,11 @@ class MainActivity : Activity() {
                         )
 
                         try {
+                               // Preparar fondo blanco antes de dibujar el PDF
+    val canvas = Canvas(bitmap)
+    canvas.drawColor(Color.WHITE)
+
+    // Dibujar la página sobre el fondo blanco
                             page.render(
                                 bitmap,
                                 null,
