@@ -106,8 +106,21 @@ class MensajePedidoActivity : Activity() {
     }
 )
 
-        pantalla.addView(botonMensaje)
-        pantalla.addView(botonSoloImagenes)
+pantalla.addView(
+    botonMensaje,
+    LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        56
+    )
+)
+
+pantalla.addView(
+    botonSoloImagenes,
+    LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        56
+    )
+)
 
         setContentView(pantalla)
     }
