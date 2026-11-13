@@ -16,7 +16,7 @@ android {
     }
         signingConfigs {
     stable {
-        storeFile file("$rootDir/copiar-aq-release.jks")
+        storeFile rootProject.file("copiar-aq-release.jks")
         storePassword System.getenv("KEYSTORE_PASSWORD")
         keyAlias System.getenv("KEY_ALIAS")
         keyPassword System.getenv("KEY_PASSWORD")
