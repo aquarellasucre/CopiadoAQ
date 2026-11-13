@@ -12,7 +12,7 @@ package bo.aquarella.copiar
 object MotorVariables {
 
     private val patronVariable =
-        Regex("""\{\{\s*([a-zA-Z0-9_]+)\s*}}""")
+        Regex("""\{\{\s*([a-zA-Z0-9_]+)\s*\}\}""")
 
     fun reemplazar(
         contenido: String,
