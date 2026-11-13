@@ -1,5 +1,8 @@
 package bo.aquarella.copiar
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import android.graphics.Canvas
 import android.graphics.Color
 import android.app.Activity
@@ -31,6 +34,12 @@ class MainActivity : Activity() {
         private const val ESCALA = 4
         private const val CALIDAD_JPEG = 100
     }
+        private val scope = CoroutineScope(Dispatchers.Main)
+
+        private val REQUEST_MENSAJE = 1001
+
+        private var imagenesPendientes = ArrayList<File>()
+        private var pedidoPendiente = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
