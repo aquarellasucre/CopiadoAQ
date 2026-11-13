@@ -1,3 +1,4 @@
+
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
@@ -19,8 +20,23 @@ android {
                 "\"${System.getenv('COPIAR_AQ_TOKEN') ?: ''}\""
     }
 
+    signingConfigs {
+        stable {
+            storeFile rootProject.file("copiar-aq-release.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD")
+            keyAlias System.getenv("KEY_ALIAS")
+            keyPassword System.getenv("KEY_PASSWORD")
+        }
+    }
+
     buildFeatures {
         buildConfig true
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.stable
+        }
     }
 
     compileOptions {
@@ -35,7 +51,6 @@ android {
 
 dependencies {
     implementation 'androidx.core:core:1.15.0'
-
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
 
     // Base de datos local Room
