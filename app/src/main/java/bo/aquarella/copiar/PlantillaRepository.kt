@@ -44,4 +44,18 @@ class PlantillaRepository(
     ) {
         dao.guardarComoPredeterminada(plantilla)
     }
+    
+    suspend fun generarMensaje(
+        idPlantilla: String,
+        valores: Map<String, String>
+    ): String? {
+        val plantilla = dao.obtenerPorId(idPlantilla)
+            ?: return null
+
+        return MotorVariables.reemplazar(
+            plantilla.contenido,
+            valores
+        )
+    }
+
 }
