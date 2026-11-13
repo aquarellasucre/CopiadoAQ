@@ -52,6 +52,37 @@ class MainActivity : Activity() {
         handleIntent(intent)
     }
 
+    @Suppress("DEPRECATION")
+override fun onActivityResult(
+    requestCode: Int,
+    resultCode: Int,
+    data: Intent?
+) {
+    super.onActivityResult(requestCode, resultCode, data)
+
+    if (requestCode == REQUEST_MENSAJE) {
+
+        if (resultCode != RESULT_OK) {
+            finish()
+            return
+        }
+
+        val enviarTexto =
+            data?.getBooleanExtra("enviar_texto", false) ?: false
+
+        val mensaje =
+            data?.getStringExtra(
+                MensajePedidoActivity.EXTRA_MENSAJE
+            ).orEmpty()
+
+        compartirImagenes(
+            imagenesPendientes,
+            pedidoPendiente,
+            if (enviarTexto) mensaje else null
+        )
+    }
+}
+    
     private fun handleIntent(sourceIntent: Intent?) {
         when (sourceIntent?.data?.host) {
             "copy" -> handleCopyIntent(sourceIntent)
