@@ -226,7 +226,7 @@ class MainActivity : Activity() {
                 )
 
                 runOnUiThread {
-                    compartirImagenes(imagenes, pedido)
+                    compartirImagenes(imagenes, pedido, valores)
                 }
 
             } catch (error: Exception) {
@@ -340,10 +340,11 @@ class MainActivity : Activity() {
     }
 
     // COMPARTIR TODAS LAS PÁGINAS COMO FOTOGRAFÍAS
-    private fun compartirImagenes(
-        imagenes: ArrayList<File>,
-        pedido: String
-    ) {
+        private fun compartirImagenes(
+            imagenes: ArrayList<File>,
+            pedido: String,
+            valores: Map<String, String>
+        ) {
         try {
             if (imagenes.isEmpty()) {
                 throw Exception("No se generaron imágenes")
