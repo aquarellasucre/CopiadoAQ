@@ -40,6 +40,10 @@
             </intent-filter>
 
         </activity>
+            
+        <activity
+            android:name=".PlantillasActivity"
+            android:exported="false" />
 
         <provider
     android:name="androidx.core.content.FileProvider"
