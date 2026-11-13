@@ -103,6 +103,14 @@ class MainActivity : Activity() {
     private fun handlePdfIntent(sourceIntent: Intent?) {
         val pedido = sourceIntent?.data?.getQueryParameter("pedido")
         val ticket = sourceIntent?.data?.getQueryParameter("ticket")
+    // DATOS DEL CLIENTE Y DEL PEDIDO
+        val valores = mapOf(
+            "cliente" to sourceIntent?.data?.getQueryParameter("cliente").orEmpty(),
+            "pedido" to pedido.orEmpty(),
+            "tipo_cliente" to sourceIntent?.data?.getQueryParameter("tipo_cliente").orEmpty(),
+            "fecha" to sourceIntent?.data?.getQueryParameter("fecha").orEmpty(),
+            "saldo" to sourceIntent?.data?.getQueryParameter("saldo").orEmpty()
+            )
 
         if (pedido.isNullOrEmpty()) {
             Toast.makeText(
