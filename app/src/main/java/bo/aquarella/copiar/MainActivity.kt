@@ -482,6 +482,13 @@ private fun mostrarRevisionMensaje(
                     uris
                 )
 
+                if (!mensaje.isNullOrBlank()) {
+                    putExtra(
+                    Intent.EXTRA_TEXT,
+                    mensaje
+                )
+                }
+
                 val datos = ClipData.newUri(
                     contentResolver,
                     "Página 1 del pedido",
