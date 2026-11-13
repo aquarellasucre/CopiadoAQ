@@ -456,8 +456,8 @@ private fun mostrarRevisionMensaje(
     // COMPARTIR TODAS LAS PÁGINAS COMO FOTOGRAFÍAS
         private fun compartirImagenes(
             imagenes: ArrayList<File>,
-            pedido: String,
-            valores: Map<String, String>
+                pedido: String,
+            mensaje: String?
         ) {
         try {
             if (imagenes.isEmpty()) {
