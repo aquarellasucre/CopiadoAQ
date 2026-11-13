@@ -49,8 +49,14 @@ class MainActivity : Activity() {
             "pdf" -> handlePdfIntent(sourceIntent)
             else -> {
                 val text = sourceIntent?.getStringExtra("text")
+
                 if (!text.isNullOrEmpty()) {
-                    copyText(text)
+                copyText(text)
+                } else if (sourceIntent?.data == null) {
+                    startActivity(
+                        Intent(this, PlantillasActivity::class.java)
+                    )
+                    finish()
                 } else {
                     finish()
                 }
