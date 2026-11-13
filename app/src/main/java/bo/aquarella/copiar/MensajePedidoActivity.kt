@@ -75,7 +75,7 @@ class MensajePedidoActivity : Activity() {
 
         val botonMensaje = Button(this).apply {
             text = "Continuar con mensaje"
-            isEnabled = tienePlantilla
+            isEnabled = tienePlantilla && mensaje.isNotBlank()
             setOnClickListener {
                 setResult(
                     RESULT_OK,
