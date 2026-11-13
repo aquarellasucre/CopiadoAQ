@@ -34,8 +34,9 @@ class MensajePedidoActivity : Activity() {
 
         val pantalla = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 32, 32, 32)
+            setPadding(32, 32, 64, 64)
             gravity = Gravity.CENTER_HORIZONTAL
+            fitsSystemWindows = true
         }
 
         val titulo = TextView(this).apply {
@@ -97,11 +98,13 @@ class MensajePedidoActivity : Activity() {
         pantalla.addView(
             editorMensaje,
             LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
                 1f
-            )
-        )
+        ).apply {
+        bottomMargin = 16
+    }
+)
 
         pantalla.addView(botonMensaje)
         pantalla.addView(botonSoloImagenes)
