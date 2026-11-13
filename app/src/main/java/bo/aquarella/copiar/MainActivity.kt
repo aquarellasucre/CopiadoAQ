@@ -40,6 +40,8 @@ class MainActivity : Activity() {
 
         private var imagenesPendientes = ArrayList<File>()
         private var pedidoPendiente = ""
+    private var mensajePendiente = ""
+private val REQUEST_IMAGENES = 1002
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +54,8 @@ class MainActivity : Activity() {
         handleIntent(intent)
     }
 
-    @Suppress("DEPRECATION")
+
+@Suppress("DEPRECATION")
 override fun onActivityResult(
     requestCode: Int,
     resultCode: Int,
@@ -60,28 +63,56 @@ override fun onActivityResult(
 ) {
     super.onActivityResult(requestCode, resultCode, data)
 
-    if (requestCode == REQUEST_MENSAJE) {
+    when (requestCode) {
 
-        if (resultCode != RESULT_OK) {
-            finish()
-            return
+        REQUEST_MENSAJE -> {
+
+            if (resultCode != RESULT_OK) {
+                finish()
+                return
+            }
+
+            val enviarTexto =
+                data?.getBooleanExtra("enviar_texto", false) ?: false
+
+            mensajePendiente = if (enviarTexto) {
+                data?.getStringExtra(
+                    MensajePedidoActivity.EXTRA_MENSAJE
+                ).orEmpty()
+            } else {
+                ""
+            }
+
+            compartirImagenes(
+                imagenesPendientes,
+                pedidoPendiente
+            )
         }
 
-        val enviarTexto =
-            data?.getBooleanExtra("enviar_texto", false) ?: false
+        REQUEST_IMAGENES -> {
 
-        val mensaje =
-            data?.getStringExtra(
-                MensajePedidoActivity.EXTRA_MENSAJE
-            ).orEmpty()
+            if (mensajePendiente.isBlank()) {
+                finish()
+                return
+            }
 
-        compartirImagenes(
-            imagenesPendientes,
-            pedidoPendiente,
-            if (enviarTexto) mensaje else null
-        )
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Imágenes preparadas")
+                .setMessage(
+                    "¿Deseas abrir WhatsApp para enviar el mensaje de texto por separado?"
+                )
+                .setPositiveButton("Enviar texto") { _, _ ->
+                    compartirTexto(mensajePendiente)
+                }
+                .setNegativeButton("Ahora no") { _, _ ->
+                    finish()
+                }
+                .setCancelable(false)
+                .show()
+        }
     }
 }
+
     
     private fun handleIntent(sourceIntent: Intent?) {
         when (sourceIntent?.data?.host) {
