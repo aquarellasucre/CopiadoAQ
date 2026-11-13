@@ -251,6 +251,80 @@ class MainActivity : Activity() {
         }
     }
 
+    // PREPARAR EL MENSAJE ANTES DE COMPARTIR
+private fun mostrarRevisionMensaje(
+    imagenes: ArrayList<File>,
+    pedido: String,
+    valores: Map<String, String>
+) {
+    val categoria = valores["tipo_cliente"].orEmpty().uppercase()
+
+    imagenesPendientes = imagenes
+    pedidoPendiente = pedido
+
+    scope.launch {
+        try {
+            val repository =
+                (application as CopiarAQApp).plantillaRepository
+
+            val mensaje = if (categoria in listOf("C2B", "P1B", "PSB")) {
+                repository.generarMensajePredeterminado(
+                    categoria,
+                    valores
+                )
+            } else {
+                null
+            }
+
+            val revision = Intent(
+                this@MainActivity,
+                MensajePedidoActivity::class.java
+            ).apply {
+                putExtra(
+                    MensajePedidoActivity.EXTRA_PEDIDO,
+                    pedido
+                )
+                putExtra(
+                    MensajePedidoActivity.EXTRA_MENSAJE,
+                    mensaje.orEmpty()
+                )
+                putExtra(
+                    MensajePedidoActivity.EXTRA_TIENE_PLANTILLA,
+                    mensaje != null
+                )
+            }
+
+            startActivityForResult(revision, REQUEST_MENSAJE)
+
+        } catch (error: Exception) {
+            Toast.makeText(
+                this@MainActivity,
+                "No se pudo preparar el mensaje: ${error.message}",
+                Toast.LENGTH_LONG
+            ).show()
+
+            val revision = Intent(
+                this@MainActivity,
+                MensajePedidoActivity::class.java
+            ).apply {
+                putExtra(
+                    MensajePedidoActivity.EXTRA_PEDIDO,
+                    pedido
+                )
+                putExtra(
+                    MensajePedidoActivity.EXTRA_MENSAJE,
+                    ""
+                )
+                putExtra(
+                    MensajePedidoActivity.EXTRA_TIENE_PLANTILLA,
+                    false
+                )
+            }
+
+            startActivityForResult(revision, REQUEST_MENSAJE)
+        }
+    }
+}
     // CONVERTIR TODAS LAS PÁGINAS A JPG
     private fun convertirTodasLasPaginas(
         pdfFile: File,
