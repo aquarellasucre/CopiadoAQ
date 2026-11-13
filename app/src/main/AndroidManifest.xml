@@ -4,6 +4,7 @@
 <uses-permission android:name="android.permission.INTERNET" />
     
     <application
+        android:name=".CopiarAQApp"
         android:allowBackup="false"
         android:label="Copiar AQ"
         android:supportsRtl="true"
