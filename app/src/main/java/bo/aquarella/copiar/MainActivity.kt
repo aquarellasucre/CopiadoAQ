@@ -235,7 +235,7 @@ class MainActivity : Activity() {
                 )
 
                 runOnUiThread {
-                    compartirImagenes(imagenes, pedido, valores)
+                    mostrarRevisionMensaje(imagenes, pedido, valores)
                 }
 
             } catch (error: Exception) {
