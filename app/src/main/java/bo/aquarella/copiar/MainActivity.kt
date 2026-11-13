@@ -96,6 +96,7 @@ class MainActivity : Activity() {
     // MÓDULO 2: DESCARGA DEL PDF
     private fun handlePdfIntent(sourceIntent: Intent?) {
         val pedido = sourceIntent?.data?.getQueryParameter("pedido")
+        val ticket = sourceIntent?.data?.getQueryParameter("ticket")
 
         if (pedido.isNullOrEmpty()) {
             Toast.makeText(
@@ -106,6 +107,16 @@ class MainActivity : Activity() {
             finish()
             return
         }
+
+        if (ticket.isNullOrEmpty()) {
+            Toast.makeText(
+                this,
+                "No se recibió la ruta del PDF",
+                Toast.LENGTH_LONG
+            ).show()
+            finish()
+            return
+         }
 
         val token = BuildConfig.COPIAR_AQ_TOKEN
 
@@ -130,7 +141,8 @@ class MainActivity : Activity() {
                 val url = URL(
                     APPS_SCRIPT_URL +
                     "?token=" + URLEncoder.encode(token, "UTF-8") +
-                    "&pedido=" + URLEncoder.encode(pedido, "UTF-8")
+                    "&pedido=" + URLEncoder.encode(pedido, "UTF-8") +
+                    "&ticket=" + URLEncoder.encode(ticket, "UTF-8")
                 )
 
                 val connection =
