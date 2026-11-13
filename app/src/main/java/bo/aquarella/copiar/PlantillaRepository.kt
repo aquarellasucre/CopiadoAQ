@@ -57,5 +57,16 @@ class PlantillaRepository(
             valores
         )
     }
+    suspend fun generarMensajePredeterminado(
+    categoria: String,
+    valores: Map<String, String>
+    ): String? {
+    val plantilla = dao.obtenerPredeterminada(categoria)
+        ?: return null
 
+    return MotorVariables.reemplazar(
+        plantilla.contenido,
+        valores
+    )
+    }
 }
