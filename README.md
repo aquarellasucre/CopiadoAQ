@@ -44,3 +44,5 @@ CONCATENATE(
 - Esta es una compilación de depuración para pruebas. No está firmada como versión de distribución.
 - Android puede mostrar su propio aviso de portapapeles. La aplicación no puede suprimir ese aviso del sistema.
 - La apertura de esquemas personalizados desde AppSheet depende de que Android permita resolver el enlace a esta aplicación. Hay que probarlo en el dispositivo real.
+
+- Versión con firma permanente
