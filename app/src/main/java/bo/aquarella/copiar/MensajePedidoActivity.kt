@@ -10,7 +10,8 @@ import android.widget.TextView
 import android.view.ViewGroup
 import android.view.Gravity
 import android.graphics.Typeface
-import android.widget.Toast
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 
 class MensajePedidoActivity : Activity() {
 
@@ -25,8 +26,13 @@ class MensajePedidoActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        fun dp(valor: Int): Int {
+            return (valor * resources.displayMetrics.density).toInt()
+        }
+
         val pedido = intent.getStringExtra(EXTRA_PEDIDO).orEmpty()
         val mensaje = intent.getStringExtra(EXTRA_MENSAJE).orEmpty()
+
         val tienePlantilla = intent.getBooleanExtra(
             EXTRA_TIENE_PLANTILLA,
             false
@@ -34,9 +40,24 @@ class MensajePedidoActivity : Activity() {
 
         val pantalla = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 32, 64, 64)
             gravity = Gravity.CENTER_HORIZONTAL
-            fitsSystemWindows = true
+            setPadding(0, 0, 0, 0)
+        }
+
+        // RESPETAR LAS BARRAS DEL SISTEMA ANDROID
+        ViewCompat.setOnApplyWindowInsetsListener(pantalla) { vista, insets ->
+            val barras = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars()
+            )
+
+            vista.setPadding(
+                dp(24),
+                dp(16) + barras.top,
+                dp(24),
+                dp(16) + barras.bottom
+            )
+
+            insets
         }
 
         val titulo = TextView(this).apply {
@@ -56,27 +77,16 @@ class MensajePedidoActivity : Activity() {
 
         editorMensaje = EditText(this).apply {
             setText(mensaje)
-            minLines = 5
+            minLines = 4
+            textSize = 16f
             gravity = Gravity.TOP
             hint = "Escribe el mensaje para el cliente"
-        }
-
-        val botonSoloImagenes = Button(this).apply {
-            text = "Enviar solamente imágenes"
-            setOnClickListener {
-                setResult(
-                    RESULT_OK,
-                    intent.apply {
-                        putExtra("enviar_texto", false)
-                    }
-                )
-                finish()
-            }
         }
 
         val botonMensaje = Button(this).apply {
             text = "Continuar con mensaje"
             isEnabled = tienePlantilla && mensaje.isNotBlank()
+
             setOnClickListener {
                 setResult(
                     RESULT_OK,
@@ -92,36 +102,70 @@ class MensajePedidoActivity : Activity() {
             }
         }
 
-        pantalla.addView(titulo)
-        pantalla.addView(descripcion)
+        val botonSoloImagenes = Button(this).apply {
+            text = "Enviar solamente imágenes"
+
+            setOnClickListener {
+                setResult(
+                    RESULT_OK,
+                    intent.apply {
+                        putExtra("enviar_texto", false)
+                    }
+                )
+                finish()
+            }
+        }
+
+        pantalla.addView(
+            titulo,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
+
+        pantalla.addView(
+            descripcion,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(12)
+            }
+        )
 
         pantalla.addView(
             editorMensaje,
             LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
                 1f
-        ).apply {
-        bottomMargin = 16
-    }
-)
+            ).apply {
+                topMargin = dp(16)
+                bottomMargin = dp(12)
+            }
+        )
 
-pantalla.addView(
-    botonMensaje,
-    LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        56
-    )
-)
+        pantalla.addView(
+            botonMensaje,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(52)
+            )
+        )
 
-pantalla.addView(
-    botonSoloImagenes,
-    LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        56
-    )
-)
+        pantalla.addView(
+            botonSoloImagenes,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(52)
+            ).apply {
+                topMargin = dp(8)
+            }
+        )
 
         setContentView(pantalla)
+
+        ViewCompat.requestApplyInsets(pantalla)
     }
 }
