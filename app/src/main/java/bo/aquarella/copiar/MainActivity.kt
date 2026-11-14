@@ -484,13 +484,13 @@ private fun mostrarRevisionMensaje(
 
         return imagenes
     }
-
+        
     // COMPARTIR TODAS LAS PÁGINAS COMO FOTOGRAFÍAS
-        private fun compartirImagenes(
-            imagenes: ArrayList<File>,
-                pedido: String,
-            mensaje: String?
-        ) {
+    private fun compartirImagenes(
+        imagenes: ArrayList<File>,
+        pedido: String,
+        mensaje: String?
+    ) {
         try {
             if (imagenes.isEmpty()) {
                 throw Exception("No se generaron imágenes")
@@ -509,12 +509,11 @@ private fun mostrarRevisionMensaje(
 
             val compartir = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
                 type = "image/jpeg"
+
                 putParcelableArrayListExtra(
                     Intent.EXTRA_STREAM,
                     uris
                 )
-
-                }
 
                 val datos = ClipData.newUri(
                     contentResolver,
@@ -523,9 +522,7 @@ private fun mostrarRevisionMensaje(
                 )
 
                 for (i in 1 until uris.size) {
-                    datos.addItem(
-                        ClipData.Item(uris[i])
-                    )
+                    datos.addItem(ClipData.Item(uris[i]))
                 }
 
                 clipData = datos
@@ -541,11 +538,12 @@ private fun mostrarRevisionMensaje(
                 Toast.LENGTH_LONG
             ).show()
 
-            startActivity(
+            startActivityForResult(
                 Intent.createChooser(
                     compartir,
                     "Compartir pedido $pedido"
-                )
+                ),
+                REQUEST_IMAGENES
             )
 
         } catch (error: Exception) {
@@ -557,6 +555,7 @@ private fun mostrarRevisionMensaje(
             finish()
         }
     }
+
         // COMPARTIR MENSAJE DE TEXTO POR WHATSAPP
 private fun compartirTexto(mensaje: String) {
     try {
