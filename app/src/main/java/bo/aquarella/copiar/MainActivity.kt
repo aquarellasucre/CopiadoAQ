@@ -85,7 +85,8 @@ override fun onActivityResult(
 
             compartirImagenes(
                 imagenesPendientes,
-                pedidoPendiente
+                pedidoPendiente,
+                mensajePendiente
             )
         }
 
