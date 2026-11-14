@@ -42,6 +42,7 @@ class MainActivity : Activity() {
         private var pedidoPendiente = ""
         private var mensajePendiente = ""
         private var telefonoPendiente = ""
+        private var instanciaPendiente = ""
     private val REQUEST_IMAGENES = 1002
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -183,7 +184,8 @@ override fun onActivityResult(
             "tipo_cliente" to sourceIntent?.data?.getQueryParameter("tipo_cliente").orEmpty(),
             "fecha" to sourceIntent?.data?.getQueryParameter("fecha").orEmpty(),
             "saldo" to sourceIntent?.data?.getQueryParameter("saldo").orEmpty(),
-            "telefono" to sourceIntent?.data?.getQueryParameter("telefono").orEmpty()
+            "telefono" to sourceIntent?.data?.getQueryParameter("telefono").orEmpty(),
+            "instancia" to sourceIntent?.data?.getQueryParameter("instancia").orEmpty()
             )
 
         if (pedido.isNullOrEmpty()) {
@@ -324,9 +326,10 @@ private fun mostrarRevisionMensaje(
 ) {
     val categoria = valores["tipo_cliente"].orEmpty().uppercase()
 
-    imagenesPendientes = imagenes
-    pedidoPendiente = pedido
-    telefonoPendiente = valores["telefono"].orEmpty()
+        imagenesPendientes = imagenes
+        pedidoPendiente = pedido
+        telefonoPendiente = valores["telefono"].orEmpty()
+        instanciaPendiente = valores["instancia"].orEmpty()
 
     scope.launch {
         try {
