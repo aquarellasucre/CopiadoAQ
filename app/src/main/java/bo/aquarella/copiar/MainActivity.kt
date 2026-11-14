@@ -514,11 +514,6 @@ private fun mostrarRevisionMensaje(
                     uris
                 )
 
-                if (!mensaje.isNullOrBlank()) {
-                    putExtra(
-                    Intent.EXTRA_TEXT,
-                    mensaje
-                )
                 }
 
                 val datos = ClipData.newUri(
