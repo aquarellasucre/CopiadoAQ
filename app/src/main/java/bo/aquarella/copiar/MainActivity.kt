@@ -189,14 +189,8 @@ override fun onActivityResult(
             "telefono" to sourceIntent?.data?.getQueryParameter("telefono").orEmpty(),
             "instancia" to sourceIntent?.data?.getQueryParameter("instancia").orEmpty()
         )
+
         
-        Toast.makeText(
-        this,
-        "Instancia recibida: ${valores["instancia"]}",
-        Toast.LENGTH_LONG
-        ).show()
-
-
         if (pedido.isNullOrEmpty()) {
             Toast.makeText(
                 this,
@@ -522,30 +516,43 @@ private fun mostrarRevisionMensaje(
                 uris.add(uri)
             }
 
-            val compartir = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = "image/jpeg"
+            
+val compartir = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+    type = "image/jpeg"
 
-                putParcelableArrayListExtra(
-                    Intent.EXTRA_STREAM,
-                    uris
-                )
+    when (instanciaPendiente) {
+        "WhatsApp Business" -> {
+            setPackage("com.whatsapp.w4b")
+        }
 
-                val datos = ClipData.newUri(
-                    contentResolver,
-                    "Página 1 del pedido",
-                    uris[0]
-                )
+        "WhatsApp",
+        "WhatsApp Dual" -> {
+            setPackage("com.whatsapp")
+        }
+    }
 
-                for (i in 1 until uris.size) {
-                    datos.addItem(ClipData.Item(uris[i]))
-                }
+    putParcelableArrayListExtra(
+        Intent.EXTRA_STREAM,
+        uris
+    )
 
-                clipData = datos
+    val datos = ClipData.newUri(
+        contentResolver,
+        "Página 1 del pedido",
+        uris[0]
+    )
 
-                addFlags(
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            }
+    for (i in 1 until uris.size) {
+        datos.addItem(ClipData.Item(uris[i]))
+    }
+
+    clipData = datos
+
+    addFlags(
+        Intent.FLAG_GRANT_READ_URI_PERMISSION
+    )
+}
+
 
             Toast.makeText(
                 this,
