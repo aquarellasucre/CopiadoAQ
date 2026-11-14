@@ -40,8 +40,9 @@ class MainActivity : Activity() {
 
         private var imagenesPendientes = ArrayList<File>()
         private var pedidoPendiente = ""
-    private var mensajePendiente = ""
-private val REQUEST_IMAGENES = 1002
+        private var mensajePendiente = ""
+        private var telefonoPendiente = ""
+    private val REQUEST_IMAGENES = 1002
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -181,7 +182,8 @@ override fun onActivityResult(
             "pedido" to pedido.orEmpty(),
             "tipo_cliente" to sourceIntent?.data?.getQueryParameter("tipo_cliente").orEmpty(),
             "fecha" to sourceIntent?.data?.getQueryParameter("fecha").orEmpty(),
-            "saldo" to sourceIntent?.data?.getQueryParameter("saldo").orEmpty()
+            "saldo" to sourceIntent?.data?.getQueryParameter("saldo").orEmpty(),
+            "telefono" to sourceIntent?.data?.getQueryParameter("telefono").orEmpty()
             )
 
         if (pedido.isNullOrEmpty()) {
@@ -324,6 +326,7 @@ private fun mostrarRevisionMensaje(
 
     imagenesPendientes = imagenes
     pedidoPendiente = pedido
+    telefonoPendiente = valores["telefono"].orEmpty()
 
     scope.launch {
         try {
@@ -557,27 +560,62 @@ private fun mostrarRevisionMensaje(
     }
 
         // COMPARTIR MENSAJE DE TEXTO POR WHATSAPP
+
 private fun compartirTexto(mensaje: String) {
     try {
-        val compartir = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, mensaje)
-        }
+        if (telefonoPendiente.isNotBlank()) {
 
-        startActivity(
-            Intent.createChooser(
-                compartir,
-                "Enviar mensaje del pedido"
-            )
-        )
+            // Limpiar el número: quitar +, espacios y guiones
+            val telefono = telefonoPendiente.filter { it.isDigit() }
+
+            if (telefono.isNotBlank()) {
+
+                // Abrir directamente el chat con el mensaje preparado
+                val uri = android.net.Uri.Builder()
+                    .scheme("https")
+                    .authority("wa.me")
+                    .appendPath(telefono)
+                    .appendQueryParameter("text", mensaje)
+                    .build()
+
+                val abrirWhatsApp = Intent(
+                    Intent.ACTION_VIEW,
+                    uri
+                )
+
+                startActivity(abrirWhatsApp)
+
+            } else {
+                compartirTextoManual(mensaje)
+            }
+
+        } else {
+            // Si no hay teléfono, conservar el envío manual
+            compartirTextoManual(mensaje)
+        }
 
     } catch (error: Exception) {
         Toast.makeText(
             this,
-            "Error al compartir mensaje: ${error.message}",
+            "Error al abrir WhatsApp: ${error.message}",
             Toast.LENGTH_LONG
         ).show()
     }
 }
+
+private fun compartirTextoManual(mensaje: String) {
+    val compartir = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, mensaje)
+    }
+
+    startActivity(
+        Intent.createChooser(
+            compartir,
+            "Enviar mensaje del pedido"
+        )
+    )
+}
+
         
 }
