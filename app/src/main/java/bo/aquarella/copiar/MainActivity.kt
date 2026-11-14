@@ -598,11 +598,22 @@ private fun compartirTexto(mensaje: String) {
                     .build()
 
                 val abrirWhatsApp = Intent(
-                    Intent.ACTION_VIEW,
-                    uri
-                )
+                        Intent.ACTION_VIEW,
+                        uri
+                    )
+                    
+                    when (instanciaPendiente) {
+                        "WhatsApp Business" -> {
+                            abrirWhatsApp.setPackage("com.whatsapp.w4b")
+                        }
+                    
+                        "WhatsApp",
+                        "WhatsApp Dual" -> {
+                            abrirWhatsApp.setPackage("com.whatsapp")
+                        }
+                    }
 
-                startActivity(abrirWhatsApp)
+                    startActivity(abrirWhatsApp)
 
             } else {
                 compartirTextoManual(mensaje)
