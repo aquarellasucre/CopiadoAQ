@@ -531,6 +531,11 @@ val compartir = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
         }
     }
 
+        putExtra(
+        "jid",
+        telefonoPendiente.filter { it.isDigit() } + "@s.whatsapp.net"
+        )
+    
     putParcelableArrayListExtra(
         Intent.EXTRA_STREAM,
         uris
@@ -561,10 +566,7 @@ val compartir = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
             ).show()
 
             startActivityForResult(
-                Intent.createChooser(
-                    compartir,
-                    "Compartir pedido $pedido"
-                ),
+                compartir,
                 REQUEST_IMAGENES
             )
 
