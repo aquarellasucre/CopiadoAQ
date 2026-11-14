@@ -562,4 +562,28 @@ private fun mostrarRevisionMensaje(
             finish()
         }
     }
+        // COMPARTIR MENSAJE DE TEXTO POR WHATSAPP
+private fun compartirTexto(mensaje: String) {
+    try {
+        val compartir = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, mensaje)
+        }
+
+        startActivity(
+            Intent.createChooser(
+                compartir,
+                "Enviar mensaje del pedido"
+            )
+        )
+
+    } catch (error: Exception) {
+        Toast.makeText(
+            this,
+            "Error al compartir mensaje: ${error.message}",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+}
+        
 }
