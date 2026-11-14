@@ -177,7 +177,9 @@ override fun onActivityResult(
     private fun handlePdfIntent(sourceIntent: Intent?) {
         val pedido = sourceIntent?.data?.getQueryParameter("pedido")
         val ticket = sourceIntent?.data?.getQueryParameter("ticket")
+        val instancia = sourceIntent?.data?.getQueryParameter("instancia").orEmpty()
     // DATOS DEL CLIENTE Y DEL PEDIDO
+        
         val valores = mapOf(
             "cliente" to sourceIntent?.data?.getQueryParameter("cliente").orEmpty(),
             "pedido" to pedido.orEmpty(),
@@ -186,7 +188,8 @@ override fun onActivityResult(
             "saldo" to sourceIntent?.data?.getQueryParameter("saldo").orEmpty(),
             "telefono" to sourceIntent?.data?.getQueryParameter("telefono").orEmpty(),
             "instancia" to sourceIntent?.data?.getQueryParameter("instancia").orEmpty()
-            )
+        )
+
 
         if (pedido.isNullOrEmpty()) {
             Toast.makeText(
