@@ -189,6 +189,12 @@ override fun onActivityResult(
             "telefono" to sourceIntent?.data?.getQueryParameter("telefono").orEmpty(),
             "instancia" to sourceIntent?.data?.getQueryParameter("instancia").orEmpty()
         )
+        
+        Toast.makeText(
+        this,
+        "Instancia recibida: ${valores["instancia"]}",
+        Toast.LENGTH_LONG
+        ).show()
 
 
         if (pedido.isNullOrEmpty()) {
