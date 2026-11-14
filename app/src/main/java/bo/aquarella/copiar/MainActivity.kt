@@ -590,30 +590,32 @@ private fun compartirTexto(mensaje: String) {
             if (telefono.isNotBlank()) {
 
                 // Abrir directamente el chat con el mensaje preparado
-                val uri = android.net.Uri.Builder()
-                    .scheme("https")
-                    .authority("wa.me")
-                    .appendPath(telefono)
-                    .appendQueryParameter("text", mensaje)
-                    .build()
 
-                val abrirWhatsApp = Intent(
-                        Intent.ACTION_VIEW,
-                        uri
-                    )
-                    
-                    when (instanciaPendiente) {
-                        "WhatsApp Business" -> {
-                            abrirWhatsApp.setPackage("com.whatsapp.w4b")
-                        }
-                    
-                        "WhatsApp",
-                        "WhatsApp Dual" -> {
-                            abrirWhatsApp.setPackage("com.whatsapp")
-                        }
-                    }
+            val uri = android.net.Uri.Builder()
+                .scheme("whatsapp")
+                .authority("send")
+                .appendQueryParameter("phone", telefono)
+                .appendQueryParameter("text", mensaje)
+                .build()
+            
+            val abrirWhatsApp = Intent(
+                Intent.ACTION_VIEW,
+                uri
+            )
+            
+            when (instanciaPendiente) {
+                "WhatsApp Business" -> {
+                    abrirWhatsApp.setPackage("com.whatsapp.w4b")
+                }
+            
+                "WhatsApp",
+                "WhatsApp Dual" -> {
+                    abrirWhatsApp.setPackage("com.whatsapp")
+                }
+            }
+            
+            startActivity(abrirWhatsApp)
 
-                    startActivity(abrirWhatsApp)
 
             } else {
                 compartirTextoManual(mensaje)
