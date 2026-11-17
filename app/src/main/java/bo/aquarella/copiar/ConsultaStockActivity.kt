@@ -910,14 +910,6 @@ linea.addView(
     )
 )
 
-linea.addView(
-    informacion,
-    LinearLayout.LayoutParams(
-        0,
-        dp(44),
-        1f
-    )
-)
 
             val tallasTexto = mutableListOf<String>()
 
