@@ -89,13 +89,32 @@ private fun construirPantalla() {
     setPadding(6, 2, 6, 2)
 }
 
+
 articuloInput = EditText(this).apply {
     hint = "Código de artículo"
-    textSize = 15f
+    textSize = 14f
     setSingleLine(true)
     inputType = InputType.TYPE_CLASS_TEXT
-    setPadding(10, 0, 10, 0)
+    gravity = Gravity.CENTER_VERTICAL
+    minHeight = (42 * resources.displayMetrics.density).toInt()
+
+    setPadding(
+        (12 * resources.displayMetrics.density).toInt(),
+        0,
+        (12 * resources.displayMetrics.density).toInt(),
+        0
+    )
+
+    background = GradientDrawable().apply {
+        setColor(android.graphics.Color.WHITE)
+        cornerRadius = 9 * resources.displayMetrics.density
+        setStroke(
+            (1 * resources.displayMetrics.density).toInt(),
+            android.graphics.Color.rgb(210, 215, 220)
+        )
+    }
 }
+
 
 filaBusqueda.addView(
     articuloInput,
@@ -106,16 +125,25 @@ filaBusqueda.addView(
     )
 )
 
+
 filaBusqueda.addView(
     crearBoton("Consultar", 0f) {
         buscarArticulo()
     }.apply {
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
+            (42 * resources.displayMetrics.density).toInt()
+        ).apply {
+            setMargins(
+                (6 * resources.displayMetrics.density).toInt(),
+                0,
+                0,
+                0
+            )
+        }
     }
 )
+
 
 raiz.addView(
     filaBusqueda,
