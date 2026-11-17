@@ -530,48 +530,611 @@ private fun crearResumenSemana(): LinearLayout {
     }
 }
 
-    private fun leerTabla() {
-        val javascript = """(function() {
+    
+private fun leerTabla() {
+    val javascript = """
+        (function() {
             var tabla = document.getElementById('ContentPlaceHolder1_gvStock');
-            if (!tabla) return JSON.stringify({ok:false, texto:'No se encontró la tabla de stock. Realiza primero una consulta.'});
-            return JSON.stringify({ok:true, texto:tabla.innerText || tabla.textContent || ''});
-        })();""".trimIndent()
 
-        webView.evaluateJavascript(javascript) { resultado ->
-            val jsonText = resultado?.let {
-                if (it == "null") null else org.json.JSONTokener(it).nextValue() as? String
+            if (!tabla) {
+                return JSON.stringify({
+                    ok: false,
+                    texto: 'No se encontró la tabla de stock. Realiza primero una consulta.'
+                });
             }
+
+            var filas = Array.from(tabla.rows).map(function(fila) {
+                return Array.from(fila.cells).map(function(celda) {
+                    return (celda.innerText || celda.textContent || '').trim();
+                });
+            });
+
+            return JSON.stringify({ok: true, filas: filas});
+        })();
+    """.trimIndent()
+
+    webView.evaluateJavascript(javascript) { resultado ->
+
+        try {
+            val jsonText = resultado?.let {
+                if (it == "null") null
+                else org.json.JSONTokener(it).nextValue() as? String
+            }
+
             if (jsonText.isNullOrBlank()) {
-                mostrarResultado("No se pudo leer la respuesta de Aquarella. Comprueba que hayas realizado la consulta.")
+                mostrarMensajeStock("No se pudo leer la respuesta de Aquarella.")
                 return@evaluateJavascript
             }
 
-            try {
-                val objeto = org.json.JSONObject(jsonText)
-                val texto = objeto.optString("texto")
-                if (objeto.optBoolean("ok")) {
-                    mostrarResultado(texto.ifBlank { "La tabla está vacía." })
-                } else {
-                    mostrarResultado(texto)
-                }
-            } catch (_: Exception) {
-                mostrarResultado("No se pudo interpretar la tabla. Intenta nuevamente.")
+            val objeto = org.json.JSONObject(jsonText)
+
+            if (!objeto.optBoolean("ok")) {
+                mostrarMensajeStock(objeto.optString("texto"))
+                return@evaluateJavascript
             }
+
+            val filasJson = objeto.optJSONArray("filas")
+
+            if (filasJson == null || filasJson.length() < 2) {
+                mostrarMensajeStock("La tabla no contiene datos.")
+                return@evaluateJavascript
+            }
+
+            val cabecerasJson = filasJson.getJSONArray(0)
+
+            val cabeceras = (0 until cabecerasJson.length()).map {
+                cabecerasJson.optString(it).trim()
+            }
+
+            val registros = (1 until filasJson.length()).map { indice ->
+                val fila = filasJson.getJSONArray(indice)
+
+                cabeceras.indices.map { columna ->
+                    fila.optString(columna, "").trim()
+                }
+            }
+
+            val normalizar: (String) -> String = { valor ->
+                java.text.Normalizer.normalize(
+                    valor,
+                    java.text.Normalizer.Form.NFD
+                )
+                    .replace(Regex("\\p{Mn}+"), "")
+                    .lowercase(Locale.ROOT)
+                    .trim()
+            }
+
+            val indiceTienda = cabeceras.indexOfFirst {
+                normalizar(it).contains("tienda")
+            }
+
+            val indiceArticulo = cabeceras.indexOfFirst {
+                normalizar(it).contains("articulo")
+            }
+
+            val indiceColor = cabeceras.indexOfFirst {
+                normalizar(it).contains("color")
+            }
+
+            val indicePrecio = cabeceras.indexOfFirst {
+                normalizar(it).contains("precio")
+            }
+
+            if (indiceTienda < 0 || indiceArticulo < 0 ||
+                indiceColor < 0 || indicePrecio < 0
+            ) {
+                mostrarMensajeStock(
+                    "No se reconocieron las columnas principales de la tabla."
+                )
+                return@evaluateJavascript
+            }
+
+            val indicesTallas = cabeceras.indices.filter { indice ->
+                Regex("^(\\d{2}|T\\d+)$", RegexOption.IGNORE_CASE)
+                    .matches(cabeceras[indice].trim())
+            }
+
+            if (indicesTallas.isEmpty()) {
+                mostrarMensajeStock("No se encontraron las columnas de tallas.")
+                return@evaluateJavascript
+            }
+
+            mostrarConsultaStock(
+                cabeceras,
+                registros,
+                indicesTallas,
+                indiceTienda,
+                indiceArticulo,
+                indiceColor,
+                indicePrecio
+            )
+
+        } catch (e: Exception) {
+            mostrarMensajeStock(
+                "No se pudo interpretar la tabla. Intenta nuevamente."
+            )
+        }
+    }
+}
+
+
+private fun mostrarConsultaStock(
+    cabeceras: List<String>,
+    registros: List<List<String>>,
+    indicesTallas: List<Int>,
+    indiceTienda: Int,
+    indiceArticulo: Int,
+    indiceColor: Int,
+    indicePrecio: Int
+) {
+    fun valor(fila: List<String>, indice: Int): String {
+        return fila.getOrNull(indice)?.trim() ?: ""
+    }
+
+    fun cantidad(fila: List<String>, indice: Int): Int {
+        return valor(fila, indice).replace(",", "").toDoubleOrNull()?.toInt() ?: 0
+    }
+
+    val tiendasPermitidas = mapOf(
+        "21120" to "La Paz",
+        "22219" to "Cochabamba",
+        "23319" to "Santa Cruz",
+        "26204" to "Sucre",
+        "27207" to "Tarija"
+    )
+
+    val filasDisponibilidad = registros.filter { fila ->
+        val tienda = valor(fila, indiceTienda)
+
+        !tienda.startsWith("TOTALES", ignoreCase = true) &&
+            tiendasPermitidas.containsKey(tienda) &&
+            indicesTallas.any { cantidad(fila, it) > 0 }
+    }
+
+    val articulo = registros.firstOrNull()?.let {
+        valor(it, indiceArticulo)
+    } ?: ""
+
+    val color = registros.firstOrNull()?.let {
+        valor(it, indiceColor)
+    } ?: ""
+
+    val precio = registros.firstOrNull()?.let {
+        valor(it, indicePrecio)
+    } ?: ""
+
+    val precioMostrar = if (precio.startsWith("Bs", true)) {
+        precio
+    } else {
+        "Bs.$precio"
+    }
+
+    fun dp(valor: Int): Int =
+        (valor * resources.displayMetrics.density).toInt()
+
+    // -------------------------------------------------
+    // VISTA DISPONIBILIDAD
+    // -------------------------------------------------
+
+    val listaDisponibilidad = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(3), dp(4), dp(3), dp(4))
+    }
+
+    var textoCopiarDisponibilidad = ""
+
+    if (filasDisponibilidad.isEmpty()) {
+
+        val mensaje = TextView(this).apply {
+            text = "No hay existencias disponibles en las tiendas seleccionadas."
+            textSize = 14f
+            setPadding(dp(12), dp(16), dp(12), dp(16))
+        }
+
+        listaDisponibilidad.addView(mensaje)
+
+    } else {
+
+        filasDisponibilidad.forEach { fila ->
+
+            val codigoTienda = valor(fila, indiceTienda)
+            val ciudad = tiendasPermitidas[codigoTienda] ?: ""
+
+            val esSucre = codigoTienda == "26204"
+
+            val fondo = if (esSucre) {
+                android.graphics.Color.rgb(226, 242, 229)
+            } else {
+                android.graphics.Color.rgb(240, 242, 244)
+            }
+
+            val borde = if (esSucre) {
+                android.graphics.Color.rgb(91, 170, 111)
+            } else {
+                fondo
+            }
+
+            val linea = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+
+                setPadding(
+                    dp(5),
+                    dp(2),
+                    dp(5),
+                    dp(2)
+                )
+
+                background = GradientDrawable().apply {
+                    setColor(fondo)
+                    cornerRadius = dp(4).toFloat()
+                    setStroke(
+                        dp(if (esSucre) 1 else 0),
+                        borde
+                    )
+                }
+            }
+
+            fun agregarDato(
+                texto: String,
+                ancho: Int,
+                negrita: Boolean = false,
+                colorTexto: Int = android.graphics.Color.rgb(42, 48, 54)
+            ) {
+                val etiqueta = TextView(this).apply {
+                    text = texto
+                    textSize = 11f
+                    setTextColor(colorTexto)
+                    setSingleLine(true)
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    gravity = Gravity.CENTER_VERTICAL
+
+                    if (negrita) {
+                        setTypeface(null, Typeface.BOLD)
+                    }
+                }
+
+                linea.addView(
+                    etiqueta,
+                    LinearLayout.LayoutParams(
+                        dp(ancho),
+                        dp(44)
+                    )
+                )
+            }
+
+            agregarDato(
+                valor(fila, indiceArticulo),
+                91,
+                true
+            )
+
+            agregarDato(
+                valor(fila, indiceColor),
+                65
+            )
+
+            agregarDato(
+                precioMostrar,
+                62,
+                true
+            )
+
+            agregarDato(
+                "$codigoTienda $ciudad",
+                112,
+                true,
+                if (esSucre)
+                    android.graphics.Color.rgb(23, 107, 54)
+                else
+                    android.graphics.Color.rgb(48, 56, 64)
+            )
+
+            val tallasTexto = mutableListOf<String>()
+
+            // Todas las tiendas conservan las mismas posiciones
+            // para que las tallas queden alineadas verticalmente.
+
+            indicesTallas.forEach { indiceTalla ->
+
+                val numero = cabeceras[indiceTalla]
+                val existencia = cantidad(fila, indiceTalla)
+
+                val celda = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                }
+
+                if (existencia <= 0) {
+
+                    // Espacio invisible para conservar la alineación.
+                    celda.visibility = android.view.View.INVISIBLE
+
+                } else {
+
+                    val talla = TextView(this).apply {
+                        text = numero
+                        textSize = 9f
+                        setTextColor(
+                            android.graphics.Color.rgb(85, 93, 101)
+                        )
+                        gravity = Gravity.CENTER
+                    }
+
+                    val cantidadTexto = TextView(this).apply {
+                        text = existencia.toString()
+                        textSize = 13f
+                        setTextColor(
+                            android.graphics.Color.rgb(22, 128, 68)
+                        )
+                        setTypeface(null, Typeface.BOLD)
+                        gravity = Gravity.CENTER
+                    }
+
+                    celda.addView(
+                        talla,
+                        LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            dp(15)
+                        )
+                    )
+
+                    celda.addView(
+                        cantidadTexto,
+                        LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            dp(23)
+                        )
+                    )
+
+                    tallasTexto.add("$numero:$existencia")
+                }
+
+                linea.addView(
+                    celda,
+                    LinearLayout.LayoutParams(
+                        dp(34),
+                        dp(40)
+                    )
+                )
+            }
+
+            listaDisponibilidad.addView(
+                linea,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    dp(48)
+                ).apply {
+                    bottomMargin = dp(3)
+                }
+            )
+
+            textoCopiarDisponibilidad +=
+                "${valor(fila, indiceArticulo)} " +
+                "${valor(fila, indiceColor)} " +
+                "$precioMostrar " +
+                "$codigoTienda $ciudad " +
+                tallasTexto.joinToString(" ") +
+                "\n"
         }
     }
 
-    private fun mostrarResultado(texto: String) {
-        AlertDialog.Builder(this)
-            .setTitle("Resultado de stock")
-            .setMessage(texto)
-            .setPositiveButton("Copiar") { _, _ ->
-                val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Stock Aquarella", texto))
-                Toast.makeText(this, "Resultado copiado", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Cerrar", null)
-            .show()
+    val scrollHorizontalDisponibilidad =
+        android.widget.HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = true
+            addView(
+                listaDisponibilidad,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+        }
+
+    val scrollDisponibilidad =
+        android.widget.ScrollView(this).apply {
+            addView(scrollHorizontalDisponibilidad)
+        }
+
+    // -------------------------------------------------
+    // VISTA DATA GENERAL
+    // -------------------------------------------------
+
+    val textoGeneral = buildString {
+
+        append(cabeceras.joinToString(" | "))
+        append("\n")
+
+        registros.forEach { fila ->
+            append(fila.joinToString(" | "))
+            append("\n")
+        }
     }
+
+    val textoTabla = TextView(this).apply {
+        text = textoGeneral
+        textSize = 12f
+        typeface = Typeface.MONOSPACE
+        setTextIsSelectable(true)
+        setPadding(dp(8), dp(8), dp(8), dp(8))
+        setHorizontallyScrolling(true)
+    }
+
+    val scrollHorizontalGeneral =
+        android.widget.HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = true
+            addView(
+                textoTabla,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+        }
+
+    val scrollGeneral =
+        android.widget.ScrollView(this).apply {
+            addView(scrollHorizontalGeneral)
+            visibility = android.view.View.GONE
+        }
+
+    // -------------------------------------------------
+    // CONTENEDOR Y SELECTOR DE VISTAS
+    // -------------------------------------------------
+
+    val raizDialogo = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(8), dp(4), dp(8), dp(4))
+    }
+
+    val selector = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER
+    }
+
+    val botonDisponibilidad = Button(this).apply {
+        text = "Disponibilidad"
+        isAllCaps = false
+        textSize = 13f
+    }
+
+    val botonGeneral = Button(this).apply {
+        text = "Data general"
+        isAllCaps = false
+        textSize = 13f
+    }
+
+    selector.addView(
+        botonDisponibilidad,
+        LinearLayout.LayoutParams(0, dp(44), 1f)
+    )
+
+    selector.addView(
+        botonGeneral,
+        LinearLayout.LayoutParams(0, dp(44), 1f)
+    )
+
+    raizDialogo.addView(selector)
+
+    val contenido = android.widget.FrameLayout(this)
+
+    contenido.addView(
+        scrollDisponibilidad,
+        android.widget.FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+    )
+
+    contenido.addView(
+        scrollGeneral,
+        android.widget.FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+    )
+
+    raizDialogo.addView(
+        contenido,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            0,
+            1f
+        )
+    )
+
+    fun actualizarSelector(disponibilidad: Boolean) {
+
+        scrollDisponibilidad.visibility =
+            if (disponibilidad) android.view.View.VISIBLE
+            else android.view.View.GONE
+
+        scrollGeneral.visibility =
+            if (disponibilidad) android.view.View.GONE
+            else android.view.View.VISIBLE
+
+        botonDisponibilidad.setTypeface(
+            null,
+            if (disponibilidad) Typeface.BOLD else Typeface.NORMAL
+        )
+
+        botonGeneral.setTypeface(
+            null,
+            if (!disponibilidad) Typeface.BOLD else Typeface.NORMAL
+        )
+    }
+
+    botonDisponibilidad.setOnClickListener {
+        actualizarSelector(true)
+    }
+
+    botonGeneral.setOnClickListener {
+        actualizarSelector(false)
+    }
+
+    actualizarSelector(true)
+
+    // -------------------------------------------------
+    // DIÁLOGO
+    // -------------------------------------------------
+
+    val dialogo = AlertDialog.Builder(this)
+        .setTitle("Resultado de stock")
+        .setView(raizDialogo)
+        .setPositiveButton("Copiar", null)
+        .setNegativeButton("Cerrar", null)
+        .create()
+
+    dialogo.setOnShowListener {
+
+        dialogo.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            (resources.displayMetrics.heightPixels * 0.78).toInt()
+        )
+
+        dialogo.getButton(AlertDialog.BUTTON_POSITIVE)
+            .setOnClickListener {
+
+                val contenidoCopiar =
+                    if (scrollDisponibilidad.visibility ==
+                        android.view.View.VISIBLE
+                    ) {
+                        textoCopiarDisponibilidad
+                    } else {
+                        textoGeneral
+                    }
+
+                val clipboard =
+                    getSystemService(CLIPBOARD_SERVICE)
+                        as android.content.ClipboardManager
+
+                clipboard.setPrimaryClip(
+                    android.content.ClipData.newPlainText(
+                        "Stock Aquarella",
+                        contenidoCopiar
+                    )
+                )
+
+                Toast.makeText(
+                    this,
+                    "Resultado copiado",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+    }
+
+    dialogo.show()
+}
+
+
+private fun mostrarMensajeStock(texto: String) {
+    AlertDialog.Builder(this)
+        .setTitle("Resultado de stock")
+        .setMessage(texto)
+        .setPositiveButton("Cerrar", null)
+        .show()
+}
+
 
     override fun onBackPressed() {
         if (::webView.isInitialized && webView.canGoBack()) {
