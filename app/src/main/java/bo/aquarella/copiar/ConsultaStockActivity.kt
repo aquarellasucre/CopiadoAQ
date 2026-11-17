@@ -630,8 +630,8 @@ private fun leerTabla() {
             }
 
             val indicesTallas = cabeceras.indices.filter { indice ->
-                Regex("^(\\d{2}|T\\d+)$", RegexOption.IGNORE_CASE)
-                    .matches(cabeceras[indice].trim())
+            Regex("^(\\d+|T\\d+)$", RegexOption.IGNORE_CASE)
+            .matches(cabeceras[indice].trim())
             }
 
             if (indicesTallas.isEmpty()) {
