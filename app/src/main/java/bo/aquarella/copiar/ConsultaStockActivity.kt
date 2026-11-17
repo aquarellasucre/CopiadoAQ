@@ -253,7 +253,8 @@ raiz.addView(
 raiz.requestApplyInsets()
 }
 
-    private fun crearResumenSemana(): LinearLayout {
+    
+private fun crearResumenSemana(): LinearLayout {
     val calendario = Calendar.getInstance().apply {
         firstDayOfWeek = Calendar.MONDAY
         minimalDaysInFirstWeek = 4
@@ -270,16 +271,12 @@ raiz.requestApplyInsets()
         (valor * resources.displayMetrics.density).toInt()
 
     val contenedor = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(6), dp(1), dp(6), dp(2))
     }
 
-    // Primera línea: fecha y número de semana
-    val encabezado = LinearLayout(this).apply {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-    }
-
+    // IZQUIERDA: fecha actual
     val textoFecha = TextView(this).apply {
         text = android.text.SpannableString("Hoy: $fecha").apply {
             setSpan(
@@ -290,41 +287,28 @@ raiz.requestApplyInsets()
             )
         }
         textSize = 12f
+        gravity = Gravity.CENTER_VERTICAL
+        setSingleLine(true)
     }
 
-    encabezado.addView(
+    contenedor.addView(
         textoFecha,
-        LinearLayout.LayoutParams(0, dp(21), 1f)
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            dp(24)
+        )
     )
 
-    val textoSemana = TextView(this).apply {
-        text = "Semana"
-        textSize = 11f
-        setPadding(0, 0, dp(4), 0)
-    }
-
-    encabezado.addView(textoSemana)
-
-    val numeroSemana = TextView(this).apply {
-        text = semana.toString()
-        textSize = 11f
-        setTypeface(null, Typeface.BOLD)
+    // CENTRO: días y barra de progreso
+    val centro = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
         gravity = Gravity.CENTER
-        setPadding(dp(5), 0, dp(5), 0)
-        background = GradientDrawable().apply {
-            setColor(android.graphics.Color.TRANSPARENT)
-            cornerRadius = dp(5).toFloat()
-            setStroke(dp(1), android.graphics.Color.LTGRAY)
-        }
+        setPadding(dp(8), 0, dp(8), 0)
     }
 
-    encabezado.addView(numeroSemana)
-    contenedor.addView(encabezado)
-
-    // Segunda línea: días de la semana
     val filaDias = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
+        gravity = Gravity.CENTER
     }
 
     val dias = listOf("L", "M", "X", "J", "V", "S", "D")
@@ -332,7 +316,7 @@ raiz.requestApplyInsets()
     dias.forEachIndexed { indice, dia ->
         val etiqueta = TextView(this).apply {
             text = dia
-            textSize = 11f
+            textSize = 10f
             gravity = Gravity.CENTER
             setTypeface(null, Typeface.BOLD)
 
@@ -345,15 +329,28 @@ raiz.requestApplyInsets()
             }
         }
 
-        val parametros = LinearLayout.LayoutParams(0, dp(22), 1f)
-        filaDias.addView(etiqueta, parametros)
+        filaDias.addView(
+            etiqueta,
+            LinearLayout.LayoutParams(
+                0,
+                dp(20),
+                1f
+            )
+        )
     }
 
-    contenedor.addView(filaDias)
+    centro.addView(
+        filaDias,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(20)
+        )
+    )
 
-    // Tercera línea: progreso semanal con siete segmentos
+    // Barra de progreso con siete separaciones
     val barra = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER
     }
 
     repeat(7) { indice ->
@@ -377,10 +374,57 @@ raiz.requestApplyInsets()
         barra.addView(segmento, parametros)
     }
 
-    contenedor.addView(barra)
+    centro.addView(
+        barra,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(4)
+        )
+    )
+
+    contenedor.addView(
+        centro,
+        LinearLayout.LayoutParams(
+            0,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            1f
+        )
+    )
+
+    // DERECHA: número de semana
+    val grupoSemana = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+    }
+
+    val textoSemana = TextView(this).apply {
+        text = "Semana:"
+        textSize = 11f
+        setPadding(0, 0, dp(4), 0)
+        setSingleLine(true)
+    }
+
+    grupoSemana.addView(textoSemana)
+
+    val numeroSemana = TextView(this).apply {
+        text = semana.toString()
+        textSize = 11f
+        setTypeface(null, Typeface.BOLD)
+        gravity = Gravity.CENTER
+        setPadding(dp(5), 0, dp(5), 0)
+        background = GradientDrawable().apply {
+            setColor(android.graphics.Color.TRANSPARENT)
+            cornerRadius = dp(5).toFloat()
+            setStroke(dp(1), android.graphics.Color.LTGRAY)
+        }
+    }
+
+    grupoSemana.addView(numeroSemana)
+    contenedor.addView(grupoSemana)
 
     return contenedor
 }
+
 
     private fun crearBoton(texto: String, peso: Float, accion: () -> Unit): Button =
         Button(this).apply {
