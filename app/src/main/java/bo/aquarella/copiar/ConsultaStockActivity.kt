@@ -63,7 +63,7 @@ override fun onCreate(savedInstanceState: Bundle?) {
     CookieManager.getInstance().setAcceptCookie(true)
 
     construirPantalla()
-    abrirLogin()
+    abrirStock()
 }
 
     
