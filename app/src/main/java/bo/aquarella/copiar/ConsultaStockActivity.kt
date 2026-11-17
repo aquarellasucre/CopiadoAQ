@@ -1,5 +1,7 @@
 package bo.aquarella.copiar
 
+import android.widget.EditText
+import android.text.InputType
 import android.app.Activity
 import android.app.AlertDialog
 import android.graphics.Typeface
@@ -34,6 +36,7 @@ class ConsultaStockActivity : Activity() {
     private lateinit var webView: WebView
     private lateinit var estado: TextView
     private lateinit var progreso: ProgressBar
+    private lateinit var articuloInput: EditText
 
 override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -74,6 +77,47 @@ private fun construirPantalla() {
     acciones.addView(crearBoton("Inicio", 1f) { abrirLogin() })
     acciones.addView(crearBoton("Consulta", 1f) { abrirStock() })
     acciones.addView(crearBoton("Leer data", 1f) { leerTabla() })
+
+    val filaBusqueda = LinearLayout(this).apply {
+    orientation = LinearLayout.HORIZONTAL
+    setPadding(6, 2, 6, 2)
+}
+
+articuloInput = EditText(this).apply {
+    hint = "Código de artículo"
+    textSize = 15f
+    singleLine = true
+    inputType = InputType.TYPE_CLASS_TEXT
+    setPadding(10, 0, 10, 0)
+}
+
+filaBusqueda.addView(
+    articuloInput,
+    LinearLayout.LayoutParams(
+        0,
+        ViewGroup.LayoutParams.WRAP_CONTENT,
+        1f
+    )
+)
+
+filaBusqueda.addView(
+    crearBoton("Consultar", 0f) {
+        buscarArticulo()
+    }.apply {
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+    }
+)
+
+raiz.addView(
+    filaBusqueda,
+    LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.WRAP_CONTENT
+    )
+)
 
     raiz.addView(
         acciones,
@@ -218,6 +262,66 @@ raiz.requestApplyInsets()
     private fun abrirStock() {
         webView.loadUrl(URL_STOCK)
     }
+    private fun buscarArticulo() {
+    val articulo = articuloInput.text.toString().trim()
+
+    if (articulo.isBlank()) {
+        Toast.makeText(
+            this,
+            "Introduce un código de artículo",
+            Toast.LENGTH_SHORT
+        ).show()
+        return
+    }
+
+    val valorSeguro = org.json.JSONObject.quote(articulo)
+
+    val javascript = """
+        (function() {
+            var campo = document.getElementById('ContentPlaceHolder1_TxtItem');
+            var boton = document.getElementById('ContentPlaceHolder1_btConsult');
+
+            if (!campo || !boton) {
+                return 'formulario_no_encontrado';
+            }
+
+            campo.value = $valorSeguro;
+
+            campo.dispatchEvent(
+                new Event('input', { bubbles: true })
+            );
+
+            campo.dispatchEvent(
+                new Event('change', { bubbles: true })
+            );
+
+            boton.click();
+
+            return 'consulta_enviada';
+        })();
+    """.trimIndent()
+
+    webView.evaluateJavascript(javascript) { resultado ->
+        when {
+            resultado == "\\"consulta_enviada\\"" -> {
+                estado.text = "Consultando artículo $articulo…"
+                Toast.makeText(
+                    this,
+                    "Consulta enviada",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            else -> {
+                Toast.makeText(
+                    this,
+                    "No se encontró el formulario. Abre primero Consulta.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+}
 
     private fun leerTabla() {
         val javascript = """(function() {
