@@ -691,6 +691,22 @@ private fun mostrarConsultaStock(
             indicesTallas.any { cantidad(fila, it) > 0 }
     }
 
+    val indicesTallasVisibles = indicesTallas.filter { indice ->
+    filasDisponibilidad.any { fila ->
+        cantidad(fila, indice) > 0
+    }
+}
+
+val anchoPantallaDp = (
+    resources.displayMetrics.widthPixels /
+        resources.displayMetrics.density
+).toInt()
+
+val anchoCeldaTalla = (
+    (anchoPantallaDp - 164) /
+        maxOf(1, indicesTallasVisibles.size)
+).coerceIn(20, 28)
+
     val articulo = registros.firstOrNull()?.let {
         valor(it, indiceArticulo)
     } ?: ""
@@ -775,67 +791,45 @@ private fun mostrarConsultaStock(
                 }
             }
 
-            fun agregarDato(
-                texto: String,
-                ancho: Int,
-                negrita: Boolean = false,
-                colorTexto: Int = android.graphics.Color.rgb(42, 48, 54)
-            ) {
-                val etiqueta = TextView(this).apply {
-                    text = texto
-                    textSize = 11f
-                    setTextColor(colorTexto)
-                    setSingleLine(true)
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                    gravity = Gravity.CENTER_VERTICAL
+            val informacion = TextView(this).apply {
+    text = "${valor(fila, indiceArticulo)} " +
+        "${valor(fila, indiceColor)} " +
+        "$precioMostrar " +
+        "$codigoTienda $ciudad"
 
-                    if (negrita) {
-                        setTypeface(null, Typeface.BOLD)
-                    }
-                }
+    textSize = when {
+        indicesTallasVisibles.size >= 8 -> 7.5f
+        indicesTallasVisibles.size >= 6 -> 8f
+        else -> 9f
+    }
 
-                linea.addView(
-                    etiqueta,
-                    LinearLayout.LayoutParams(
-                        dp(ancho),
-                        dp(44)
-                    )
-                )
-            }
+    setTextColor(
+        if (esSucre)
+            android.graphics.Color.rgb(23, 107, 54)
+        else
+            android.graphics.Color.rgb(42, 48, 54)
+    )
 
-            agregarDato(
-                valor(fila, indiceArticulo),
-                91,
-                true
-            )
+    setSingleLine(true)
+    ellipsize = android.text.TextUtils.TruncateAt.END
+    gravity = Gravity.CENTER_VERTICAL
+}
 
-            agregarDato(
-                valor(fila, indiceColor),
-                65
-            )
-
-            agregarDato(
-                precioMostrar,
-                62,
-                true
-            )
-
-            agregarDato(
-                "$codigoTienda $ciudad",
-                112,
-                true,
-                if (esSucre)
-                    android.graphics.Color.rgb(23, 107, 54)
-                else
-                    android.graphics.Color.rgb(48, 56, 64)
-            )
+linea.addView(
+    informacion,
+    LinearLayout.LayoutParams(
+        0,
+        dp(44),
+        1f
+    )
+)
 
             val tallasTexto = mutableListOf<String>()
 
             // Todas las tiendas conservan las mismas posiciones
             // para que las tallas queden alineadas verticalmente.
 
-            indicesTallas.forEach { indiceTalla ->
+           indicesTallasVisibles.forEach { indiceTalla ->
 
                 val numero = cabeceras[indiceTalla]
                 val existencia = cantidad(fila, indiceTalla)
@@ -854,7 +848,7 @@ private fun mostrarConsultaStock(
 
                     val talla = TextView(this).apply {
                         text = numero
-                        textSize = 9f
+                        textSize = 8f
                         setTextColor(
                             android.graphics.Color.rgb(85, 93, 101)
                         )
@@ -863,7 +857,7 @@ private fun mostrarConsultaStock(
 
                     val cantidadTexto = TextView(this).apply {
                         text = existencia.toString()
-                        textSize = 13f
+                        textSize = 12f
                         setTextColor(
                             android.graphics.Color.rgb(22, 128, 68)
                         )
@@ -893,16 +887,16 @@ private fun mostrarConsultaStock(
                 linea.addView(
                     celda,
                     LinearLayout.LayoutParams(
-                        dp(34),
+                        dp(anchoCeldaTalla),
                         dp(40)
                     )
                 )
             }
 
-            listaDisponibilidad.addView(
+            .addView(
                 linea,
                 LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
                     dp(48)
                 ).apply {
                     bottomMargin = dp(3)
@@ -919,22 +913,19 @@ private fun mostrarConsultaStock(
         }
     }
 
-    val scrollHorizontalDisponibilidad =
-        android.widget.HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = true
-            addView(
-                listaDisponibilidad,
-                ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            )
-        }
-
     val scrollDisponibilidad =
-        android.widget.ScrollView(this).apply {
-            addView(scrollHorizontalDisponibilidad)
-        }
+    android.widget.ScrollView(this).apply {
+        isFillViewport = true
+        isHorizontalScrollBarEnabled = false
+
+        addView(
+            listaDisponibilidad,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
+    }
 
     // -------------------------------------------------
     // VISTA DATA GENERAL
