@@ -649,14 +649,20 @@ private fun leerTabla() {
                 indicePrecio
             )
 
-        } catch (e: Exception) {
-            mostrarMensajeStock(
-                "No se pudo interpretar la tabla. Intenta nuevamente."
-            )
-        }
-    }
+            } catch (e: Exception) {
+            
+                android.util.Log.e(
+                    "ConsultaStock",
+                    "Error al interpretar la tabla de Aquarella",
+                    e
+                )
+            
+                mostrarMensajeStock(
+                    "Error: ${e.message ?: e.javaClass.simpleName}"
+                )
+            }
 }
-
+}
 
 private fun mostrarConsultaStock(
     cabeceras: List<String>,
