@@ -436,8 +436,8 @@ raiz.requestApplyInsets()
     """.trimIndent()
 
     webView.evaluateJavascript(javascript) { resultado ->
-        when {
-            resultado == "\\"consulta_enviada\\"" -> {
+            when {
+                resultado == "\"consulta_enviada\"" -> {
                 estado.text = "Consultando artículo $articulo…"
                 Toast.makeText(
                     this,
