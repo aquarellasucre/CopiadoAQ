@@ -893,8 +893,9 @@ linea.addView(
                 )
             }
 
-            .addView(
+                listaDisponibilidad.addView(
                 linea,
+                
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     dp(48)
