@@ -73,6 +73,8 @@ private fun construirPantalla() {
         setPadding(0, 0, 0, 0)
     }
 
+    raiz.addView(crearResumenSemana())
+
     val acciones = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
         setPadding(2, 0, 2, 0)
@@ -90,7 +92,7 @@ private fun construirPantalla() {
 articuloInput = EditText(this).apply {
     hint = "Código de artículo"
     textSize = 15f
-    singleLine = true
+    setSingleLine(true)
     inputType = InputType.TYPE_CLASS_TEXT
     setPadding(10, 0, 10, 0)
 }
@@ -131,7 +133,6 @@ raiz.addView(
         )
     )
 
-    raiz.addView(crearResumenSemana())
 
     estado = TextView(this).apply {
         text = "Conectando con Aquarella…"
