@@ -35,14 +35,20 @@ class ConsultaStockActivity : Activity() {
     private lateinit var estado: TextView
     private lateinit var progreso: ProgressBar
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
 
-        CookieManager.getInstance().setAcceptCookie(true)
+    window.statusBarColor = android.graphics.Color.BLACK
 
-        construirPantalla()
-        abrirLogin()
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        window.setDecorFitsSystemWindows(true)
     }
+
+    CookieManager.getInstance().setAcceptCookie(true)
+
+    construirPantalla()
+    abrirLogin()
+}
 
     
 private fun construirPantalla() {
