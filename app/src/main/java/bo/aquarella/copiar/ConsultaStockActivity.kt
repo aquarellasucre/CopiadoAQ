@@ -44,99 +44,136 @@ class ConsultaStockActivity : Activity() {
         abrirLogin()
     }
 
-    private fun construirPantalla() {
-        val raiz = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(12, 12, 12, 12)
-        }
+    
+private fun construirPantalla() {
+    val raiz = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(0, 0, 0, 0)
+    }
 
-        val titulo = TextView(this).apply {
-            text = "Consulta de stock"
-            textSize = 21f
-            setTypeface(null, Typeface.BOLD)
-        }
-        raiz.addView(titulo)
+    val acciones = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        setPadding(2, 0, 2, 0)
+    }
 
-        estado = TextView(this).apply {
-            text = "Conectando con Aquarella…"
-            textSize = 13f
-            setPadding(0, 6, 0, 6)
-        }
-        raiz.addView(estado)
+    acciones.addView(crearBoton("Inicio", 1f) { abrirLogin() })
+    acciones.addView(crearBoton("Consulta", 1f) { abrirStock() })
+    acciones.addView(crearBoton("Leer data", 1f) { leerTabla() })
 
-        val acciones = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-
-        acciones.addView(crearBoton("Iniciar sesión", 1f) { abrirLogin() })
-        acciones.addView(crearBoton("Ir a stock", 1f) { abrirStock() })
-        acciones.addView(crearBoton("Leer tabla", 1f) { leerTabla() })
-        raiz.addView(acciones)
-
-        progreso = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            isIndeterminate = true
-            visibility = ProgressBar.GONE
-        }
-        raiz.addView(progreso, LinearLayout.LayoutParams(
+    raiz.addView(
+        acciones,
+        LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
+        )
+    )
 
-        webView = WebView(this).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.databaseEnabled = true
-            settings.loadsImagesAutomatically = true
-            settings.javaScriptCanOpenWindowsAutomatically = false
-            settings.setSupportMultipleWindows(false)
-            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-            webChromeClient = WebChromeClient()
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(
-                    view: WebView?,
-                    request: WebResourceRequest?
-                ): Boolean {
-                    val uri = request?.url ?: return true
-                    return uri.scheme !in listOf("http", "https") ||
-                        uri.host != HOST_PERMITIDO
+    estado = TextView(this).apply {
+        text = "Conectando con Aquarella…"
+        textSize = 12f
+        setPadding(8, 2, 8, 2)
+        maxLines = 1
+    }
+
+    raiz.addView(
+        estado,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+    )
+
+    progreso = ProgressBar(
+        this,
+        null,
+        android.R.attr.progressBarStyleHorizontal
+    ).apply {
+        isIndeterminate = true
+        visibility = ProgressBar.GONE
+    }
+
+    raiz.addView(
+        progreso,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+    )
+
+    webView = WebView(this).apply {
+        settings.javaScriptEnabled = true
+        settings.domStorageEnabled = true
+        settings.databaseEnabled = true
+        settings.loadsImagesAutomatically = true
+        settings.javaScriptCanOpenWindowsAutomatically = false
+        settings.setSupportMultipleWindows(false)
+        settings.useWideViewPort = true
+        settings.loadWithOverviewMode = true
+        settings.builtInZoomControls = true
+        settings.displayZoomControls = false
+
+        CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+
+        webChromeClient = WebChromeClient()
+
+        webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): Boolean {
+                val uri = request?.url ?: return true
+                return uri.scheme !in listOf("http", "https") ||
+                    uri.host != HOST_PERMITIDO
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                url: String?
+            ): Boolean {
+                if (url.isNullOrBlank()) return true
+                val uri = android.net.Uri.parse(url)
+                return uri.scheme !in listOf("http", "https") ||
+                    uri.host != HOST_PERMITIDO
+            }
+
+            override fun onPageStarted(
+                view: WebView?,
+                url: String?,
+                favicon: android.graphics.Bitmap?
+            ) {
+                progreso.visibility = ProgressBar.VISIBLE
+                estado.text = "Cargando Aquarella…"
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                progreso.visibility = ProgressBar.GONE
+
+                estado.text = when {
+                    url?.contains("LoginForm.aspx", true) == true ->
+                        "Inicia sesión y pulsa Consulta."
+                    url?.contains("stockForm.aspx", true) == true ->
+                        "Introduce el artículo y pulsa Consultar."
+                    else -> "Página cargada."
                 }
 
-                @Deprecated("Deprecated in Java")
-                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                    if (url.isNullOrBlank()) return true
-                    val uri = android.net.Uri.parse(url)
-                    return uri.scheme !in listOf("http", "https") ||
-                        uri.host != HOST_PERMITIDO
-                }
-
-                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                    progreso.visibility = ProgressBar.VISIBLE
-                    estado.text = "Cargando página de Aquarella…"
-                }
-
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    progreso.visibility = ProgressBar.GONE
-                    estado.text = when {
-                        url?.contains("LoginForm.aspx", ignoreCase = true) == true ->
-                            "Inicia sesión en Aquarella. Luego pulsa «Ir a stock»."
-                        url?.contains("stockForm.aspx", ignoreCase = true) == true ->
-                            "Introduce el código del artículo en el formulario y pulsa Consultar."
-                        else -> "Página de Aquarella cargada."
-                    }
-                    CookieManager.getInstance().flush()
-                }
+                CookieManager.getInstance().flush()
             }
         }
+    }
 
-        raiz.addView(webView, LinearLayout.LayoutParams(
+    raiz.addView(
+        webView,
+        LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             0,
             1f
-        ))
+        )
+    )
 
-        raiz.addView(crearBoton("Volver", 1f) { finish() })
-        setContentView(raiz)
-    }
+    setContentView(raiz)
+}
+
 
     private fun crearBoton(texto: String, peso: Float, accion: () -> Unit): Button =
         Button(this).apply {
