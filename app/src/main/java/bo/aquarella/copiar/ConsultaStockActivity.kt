@@ -749,9 +749,72 @@ val anchoCeldaTalla = (
 
         listaDisponibilidad.addView(mensaje)
 
-    } else {
+        } else {
 
-        filasDisponibilidad.forEach { fila ->
+    val encabezado = TextView(this).apply {
+
+        val texto = android.text.SpannableStringBuilder().apply {
+
+            val inicioArticulo = length
+            append("Artículo: ")
+            setSpan(
+                android.text.style.StyleSpan(Typeface.BOLD),
+                inicioArticulo,
+                length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            append(valor(filasDisponibilidad.first(), indiceArticulo))
+
+            append("    ")
+
+            val inicioColor = length
+            append("Color: ")
+            setSpan(
+                android.text.style.StyleSpan(Typeface.BOLD),
+                inicioColor,
+                length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            append(valor(filasDisponibilidad.first(), indiceColor))
+
+            append("    ")
+
+            val inicioPrecio = length
+            append("Precio: ")
+            setSpan(
+                android.text.style.StyleSpan(Typeface.BOLD),
+                inicioPrecio,
+                length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            append(precioMostrar)
+        }
+
+        text = texto
+        textSize = 10f
+        setTextColor(android.graphics.Color.rgb(42, 48, 54))
+        gravity = Gravity.CENTER
+        setSingleLine(true)
+        ellipsize = android.text.TextUtils.TruncateAt.END
+        setPadding(dp(2), dp(9), dp(2), dp(9))
+
+        background = GradientDrawable().apply {
+            setColor(android.graphics.Color.rgb(240, 242, 244))
+            cornerRadius = dp(5).toFloat()
+        }
+    }
+
+    listaDisponibilidad.addView(
+        encabezado,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            bottomMargin = dp(7)
+        }
+    )
+
+    filasDisponibilidad.forEach { fila ->
 
             val codigoTienda = valor(fila, indiceTienda)
             val ciudad = tiendasPermitidas[codigoTienda] ?: ""
@@ -791,17 +854,34 @@ val anchoCeldaTalla = (
                 }
             }
 
-            val informacion = TextView(this).apply {
-    text = "${valor(fila, indiceArticulo)} " +
-        "${valor(fila, indiceColor)} " +
-        "$precioMostrar " +
-        "$codigoTienda $ciudad"
+        val identificacionTexto =
+    android.text.SpannableStringBuilder().apply {
 
-    textSize = when {
-        indicesTallasVisibles.size >= 8 -> 7.5f
-        indicesTallasVisibles.size >= 6 -> 8f
-        else -> 9f
+        append(codigoTienda)
+        append(" ")
+
+        val inicioCiudad = length
+        append(ciudad)
+
+        setSpan(
+            android.text.style.StyleSpan(Typeface.BOLD),
+            inicioCiudad,
+            length,
+            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+
+        setSpan(
+            android.text.style.RelativeSizeSpan(1.2f),
+            inicioCiudad,
+            length,
+            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
     }
+
+val informacion = TextView(this).apply {
+
+    text = identificacionTexto
+    textSize = 9f
 
     setTextColor(
         if (esSucre)
@@ -814,6 +894,15 @@ val anchoCeldaTalla = (
     ellipsize = android.text.TextUtils.TruncateAt.END
     gravity = Gravity.CENTER_VERTICAL
 }
+
+linea.addView(
+    informacion,
+    LinearLayout.LayoutParams(
+        0,
+        dp(44),
+        1f
+    )
+)
 
 linea.addView(
     informacion,
@@ -848,7 +937,7 @@ linea.addView(
 
                     val talla = TextView(this).apply {
                         text = numero
-                        textSize = 8f
+                        textSize = 10f
                         setTextColor(
                             android.graphics.Color.rgb(85, 93, 101)
                         )
@@ -857,7 +946,7 @@ linea.addView(
 
                     val cantidadTexto = TextView(this).apply {
                         text = existencia.toString()
-                        textSize = 12f
+                        textSize = 13f
                         setTextColor(
                             android.graphics.Color.rgb(22, 128, 68)
                         )
