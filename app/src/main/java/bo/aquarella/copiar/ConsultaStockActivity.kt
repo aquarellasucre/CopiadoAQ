@@ -38,6 +38,16 @@ class ConsultaStockActivity : Activity() {
 override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
+    window.clearFlags(
+    android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+    )
+
+    window.decorView.systemUiVisibility =
+    android.view.View.SYSTEM_UI_FLAG_VISIBLE
+
+    window.statusBarColor = android.graphics.Color.BLACK
+    window.navigationBarColor = android.graphics.Color.BLACK
+
     window.statusBarColor = android.graphics.Color.BLACK
 
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
@@ -178,6 +188,19 @@ private fun construirPantalla() {
     )
 
     setContentView(raiz)
+    raiz.setOnApplyWindowInsetsListener { view, insets ->
+
+    view.setPadding(
+        0,
+        insets.systemWindowInsetTop,
+        0,
+        insets.systemWindowInsetBottom
+    )
+
+    insets
+}
+
+raiz.requestApplyInsets()
 }
 
 
