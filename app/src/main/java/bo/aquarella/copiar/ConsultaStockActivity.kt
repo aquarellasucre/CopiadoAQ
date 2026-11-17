@@ -39,16 +39,15 @@ override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
     window.clearFlags(
-    android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
     )
 
     window.decorView.systemUiVisibility =
-    android.view.View.SYSTEM_UI_FLAG_VISIBLE
+        android.view.View.SYSTEM_UI_FLAG_VISIBLE or
+        android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
-    window.statusBarColor = android.graphics.Color.BLACK
+    window.statusBarColor = android.graphics.Color.WHITE
     window.navigationBarColor = android.graphics.Color.BLACK
-
-    window.statusBarColor = android.graphics.Color.BLACK
 
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
         window.setDecorFitsSystemWindows(true)
