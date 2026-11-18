@@ -943,7 +943,15 @@ val anchoCeldaTalla = (
         setPadding(dp(3), dp(4), dp(3), dp(4))
     }
 
-    var textoCopiarDisponibilidad = ""
+    var textoCopiarDisponibilidad = buildString {
+        append(
+            (
+                listOf("Artículo", "Color", "Precio", "Código tienda", "Ciudad") +
+                indicesTallasVisibles.map { cabeceras[it] }
+            ).joinToString("\t")
+        )
+        append("\n")
+        }
 
     if (filasDisponibilidad.isEmpty()) {
 
@@ -1111,7 +1119,6 @@ linea.addView(
 )
 
 
-            val tallasTexto = mutableListOf<String>()
 
             // Todas las tiendas conservan las mismas posiciones
             // para que las tallas queden alineadas verticalmente.
@@ -1168,7 +1175,7 @@ linea.addView(
                         )
                     )
 
-                    tallasTexto.add("$numero:$existencia")
+                
                 }
 
                 linea.addView(
@@ -1192,12 +1199,18 @@ linea.addView(
             )
 
             textoCopiarDisponibilidad +=
-                "${valor(fila, indiceArticulo)} " +
-                "${valor(fila, indiceColor)} " +
-                "$precioMostrar " +
-                "$codigoTienda $ciudad " +
-                tallasTexto.joinToString(" ") +
-                "\n"
+            (
+                listOf(
+                    valor(fila, indiceArticulo),
+                    valor(fila, indiceColor),
+                    precioMostrar,
+                    codigoTienda,
+                    ciudad
+                ) +
+                indicesTallasVisibles.map { indice ->
+                    cantidad(fila, indice).toString()
+                }
+            ).joinToString("\t") + "\n"
         }
     }
 
