@@ -41,6 +41,12 @@ class ConsultaStockActivity : Activity() {
     private lateinit var estado: TextView
     private lateinit var progreso: ProgressBar
     private lateinit var articuloInput: EditText
+    
+    private lateinit var botonLeerData: Button
+    private lateinit var botonConsultar: Button
+    
+    private var consultaEnCurso = false
+    private var consultaLista = false
 
 override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -67,7 +73,48 @@ override fun onCreate(savedInstanceState: Bundle?) {
     abrirStock()
 }
 
-    
+private inner class StockJavascriptBridge {
+
+    @android.webkit.JavascriptInterface
+    fun consultaIniciada() {
+        runOnUiThread {
+            consultaEnCurso = true
+            consultaLista = false
+
+            botonConsultar.isEnabled = false
+            botonLeerData.isEnabled = false
+
+            estado.text = "Consultando artículo…"
+            progreso.visibility = ProgressBar.VISIBLE
+        }
+    }
+
+    @android.webkit.JavascriptInterface
+    fun consultaFinalizada(exito: Boolean, detalle: String) {
+        runOnUiThread {
+            consultaEnCurso = false
+            consultaLista = exito
+
+            botonConsultar.isEnabled = true
+            botonLeerData.isEnabled = exito
+
+            progreso.visibility = ProgressBar.GONE
+
+            estado.text = if (exito) {
+                "Consulta finalizada. Ya puedes leer los datos."
+            } else {
+                "La consulta terminó con un error."
+            }
+
+            if (!exito) {
+                mostrarMensajeStock(
+                    "Aquarella no pudo completar la consulta.\n\n$detalle"
+                )
+            }
+        }
+    }
+}
+
 private fun construirPantalla() {
     val raiz = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
@@ -83,7 +130,14 @@ private fun construirPantalla() {
 
     acciones.addView(crearBoton("Inicio", 1f) { abrirLogin() })
     acciones.addView(crearBoton("Consulta", 1f) { abrirStock() })
-    acciones.addView(crearBoton("Leer data", 1f) { leerTabla() })
+
+    botonLeerData = crearBoton("Leer data", 1f) {
+    leerTabla()
+    }
+
+    botonLeerData.isEnabled = false
+    
+    acciones.addView(botonLeerData)
 
     val filaBusqueda = LinearLayout(this).apply {
     orientation = LinearLayout.HORIZONTAL
@@ -146,7 +200,7 @@ filaBusqueda.addView(
 
 
 filaBusqueda.addView(
-    crearBoton("Consultar", 0f) {
+    botonConsultar = crearBoton("Consultar", 0f) {
         buscarArticulo()
     }.apply {
         layoutParams = LinearLayout.LayoutParams(
@@ -215,6 +269,12 @@ raiz.addView(
 
     webView = WebView(this).apply {
         settings.javaScriptEnabled = true
+        
+        addJavascriptInterface(
+        StockJavascriptBridge(),
+        "AndroidStock"
+        )
+        
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
         settings.loadsImagesAutomatically = true
@@ -488,6 +548,7 @@ private fun crearResumenSemana(): LinearLayout {
     private fun abrirStock() {
         webView.loadUrl(URL_STOCK)
     }
+
     private fun buscarArticulo() {
     val articulo = articuloInput.text.toString().trim()
 
@@ -500,6 +561,20 @@ private fun crearResumenSemana(): LinearLayout {
         return
     }
 
+    if (consultaEnCurso) {
+        return
+    }
+
+    // Invalidar los datos de la consulta anterior.
+    consultaEnCurso = true
+    consultaLista = false
+
+    botonConsultar.isEnabled = false
+    botonLeerData.isEnabled = false
+
+    estado.text = "Iniciando consulta de $articulo…"
+    progreso.visibility = ProgressBar.VISIBLE
+
     val valorSeguro = org.json.JSONObject.quote(articulo)
 
     val javascript = """
@@ -510,6 +585,68 @@ private fun crearResumenSemana(): LinearLayout {
             if (!campo || !boton) {
                 return 'formulario_no_encontrado';
             }
+
+            if (!window.Sys ||
+                !Sys.WebForms ||
+                !Sys.WebForms.PageRequestManager) {
+                return 'ajax_no_disponible';
+            }
+
+            var prm = Sys.WebForms.PageRequestManager.getInstance();
+
+            if (!window.__aqStockHandlersInstalled) {
+
+                window.__aqConsultaActiva = false;
+                window.__aqSolicitudIniciada = false;
+
+                prm.add_beginRequest(function(sender, args) {
+
+                    var elemento = args.get_postBackElement();
+                    var corresponde = false;
+
+                    while (elemento) {
+                        if (elemento.id === 'ContentPlaceHolder1_btConsult') {
+                            corresponde = true;
+                            break;
+                        }
+
+                        elemento = elemento.parentNode;
+                    }
+
+                    if (corresponde) {
+                        window.__aqConsultaActiva = true;
+                        window.__aqSolicitudIniciada = true;
+
+                        AndroidStock.consultaIniciada();
+                    }
+                });
+
+                prm.add_endRequest(function(sender, args) {
+
+                    if (window.__aqConsultaActiva) {
+
+                        window.__aqConsultaActiva = false;
+
+                        var error = args.get_error();
+
+                        if (error) {
+                            AndroidStock.consultaFinalizada(
+                                false,
+                                String(error.message || error)
+                            );
+                        } else {
+                            AndroidStock.consultaFinalizada(
+                                true,
+                                ''
+                            );
+                        }
+                    }
+                });
+
+                window.__aqStockHandlersInstalled = true;
+            }
+
+            window.__aqSolicitudIniciada = false;
 
             campo.value = $valorSeguro;
 
@@ -523,14 +660,21 @@ private fun crearResumenSemana(): LinearLayout {
 
             boton.click();
 
+            if (!window.__aqSolicitudIniciada) {
+                return 'postback_no_iniciado';
+            }
+
             return 'consulta_enviada';
+
         })();
     """.trimIndent()
 
     webView.evaluateJavascript(javascript) { resultado ->
-            when {
-                resultado == "\"consulta_enviada\"" -> {
-                estado.text = "Consultando artículo $articulo…"
+
+        when {
+            resultado == "\"consulta_enviada\"" -> {
+                estado.text = "Esperando respuesta de Aquarella…"
+
                 Toast.makeText(
                     this,
                     "Consulta enviada",
@@ -539,9 +683,33 @@ private fun crearResumenSemana(): LinearLayout {
             }
 
             else -> {
+                consultaEnCurso = false
+                consultaLista = false
+
+                botonConsultar.isEnabled = true
+                botonLeerData.isEnabled = false
+
+                progreso.visibility = ProgressBar.GONE
+
+                estado.text = "No se pudo iniciar la consulta."
+
+                val mensaje = when (resultado) {
+                    "\"formulario_no_encontrado\"" ->
+                        "No se encontró el formulario. Abre primero Consulta."
+
+                    "\"ajax_no_disponible\"" ->
+                        "No se detectó el sistema AJAX de Aquarella. Recarga la página."
+
+                    "\"postback_no_iniciado\"" ->
+                        "Aquarella no inició la consulta. Verifica el formulario e inténtalo nuevamente."
+
+                    else ->
+                        "No se pudo iniciar la consulta. Resultado: $resultado"
+                }
+
                 Toast.makeText(
                     this,
-                    "No se encontró el formulario. Abre primero Consulta.",
+                    mensaje,
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -551,7 +719,18 @@ private fun crearResumenSemana(): LinearLayout {
 
     
 private fun leerTabla() {
+
+    if (consultaEnCurso || !consultaLista) {
+        Toast.makeText(
+            this,
+            "Espera a que termine la consulta de Aquarella.",
+            Toast.LENGTH_SHORT
+        ).show()
+        return
+    }
+
     val javascript = """
+    
         (function() {
             var tabla = document.getElementById('ContentPlaceHolder1_gvStock');
 
