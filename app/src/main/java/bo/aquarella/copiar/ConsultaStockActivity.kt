@@ -180,6 +180,46 @@ filaBusqueda.addView(
     )
 )
 
+val botonPegar = crearBoton("Pegar", 0f) {
+    val portapapeles = getSystemService(
+        android.content.Context.CLIPBOARD_SERVICE
+    ) as android.content.ClipboardManager
+
+    val contenido = portapapeles.primaryClip
+
+    if (contenido != null && contenido.itemCount > 0) {
+        val texto = contenido.getItemAt(0)
+            .coerceToText(this)
+            .toString()
+            .filterNot { it.isWhitespace() }
+
+        articuloInput.setText(texto)
+        articuloInput.setSelection(articuloInput.text.length)
+    } else {
+        Toast.makeText(
+            this,
+            "El portapapeles está vacío",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+}
+
+filaBusqueda.addView(
+    botonPegar.apply {
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            (42 * resources.displayMetrics.density).toInt()
+        ).apply {
+            setMargins(
+                (6 * resources.displayMetrics.density).toInt(),
+                0,
+                0,
+                0
+            )
+        }
+    }
+)
+
 filaBusqueda.addView(
     crearBoton("Limpiar", 0f) {
         articuloInput.text.clear()
