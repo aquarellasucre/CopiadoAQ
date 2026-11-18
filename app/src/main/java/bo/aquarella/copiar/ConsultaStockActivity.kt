@@ -112,9 +112,15 @@ private inner class StockJavascriptBridge {
             botonLeerData.isEnabled = exito
 
             estado.text = if (exito) {
-                "Consulta finalizada. Ya puedes leer los datos."
+                "Consulta finalizada. Mostrando los datos…"
             } else {
                 "La consulta terminó con un error."
+            }
+
+            if (exito) {
+                // Abrir automáticamente el resultado.
+                // El botón Leer data permanece habilitado para volver a abrirlo manualmente.
+                leerTabla()
             }
 
             if (!exito) {
