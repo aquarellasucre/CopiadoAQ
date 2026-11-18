@@ -128,8 +128,19 @@ private fun construirPantalla() {
         setPadding(2, 0, 2, 0)
     }
 
-    acciones.addView(crearBoton("Inicio", 1f) { abrirLogin() })
-    acciones.addView(crearBoton("Consulta", 1f) { abrirStock() })
+    acciones.addView(crearBoton("Inicio", 1f) {
+    consultaLista = false
+    consultaEnCurso = false
+    botonLeerData.isEnabled = false
+    abrirLogin()
+    })
+    
+    acciones.addView(crearBoton("Consulta", 1f) {
+    consultaLista = false
+    consultaEnCurso = false
+    botonLeerData.isEnabled = false
+    abrirStock()
+    })
 
     botonLeerData = crearBoton("Leer data", 1f) {
     leerTabla()
