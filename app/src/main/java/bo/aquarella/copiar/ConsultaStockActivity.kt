@@ -925,10 +925,10 @@ val anchoCeldaTalla = (
         valor(it, indicePrecio)
     } ?: ""
 
-    val precioMostrar = if (precio.startsWith("Bs", true)) {
-        precio
+val precioMostrar = if (precio.startsWith("Bs", true)) {
+    "Bs. " + precio.substring(2).trim().removePrefix(".").trim()
     } else {
-        "Bs.$precio"
+        "Bs. $precio"
     }
 
     fun dp(valor: Int): Int =
