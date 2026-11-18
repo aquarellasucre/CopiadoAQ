@@ -661,6 +661,7 @@ private fun leerTabla() {
                     "Error: ${e.message ?: e.javaClass.simpleName}"
                 )
             }
+    }
 }
 
 private fun mostrarConsultaStock(
