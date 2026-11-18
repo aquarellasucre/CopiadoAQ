@@ -662,7 +662,6 @@ private fun leerTabla() {
                 )
             }
 }
-}
 
 private fun mostrarConsultaStock(
     cabeceras: List<String>,
@@ -1021,11 +1020,13 @@ linea.addView(
 
     val textoGeneral = buildString {
 
-        append(cabeceras.joinToString(" | "))
+        // Encabezados separados por tabulaciones
+        append(cabeceras.joinToString("\t"))
         append("\n")
 
+        // Datos separados por tabulaciones
         registros.forEach { fila ->
-            append(fila.joinToString(" | "))
+            append(fila.joinToString("\t"))
             append("\n")
         }
     }
@@ -1174,14 +1175,7 @@ linea.addView(
         dialogo.getButton(AlertDialog.BUTTON_POSITIVE)
             .setOnClickListener {
 
-                val contenidoCopiar =
-                    if (scrollDisponibilidad.visibility ==
-                        android.view.View.VISIBLE
-                    ) {
-                        textoCopiarDisponibilidad
-                    } else {
-                        textoGeneral
-                    }
+                val contenidoCopiar = textoGeneral
 
                 val clipboard =
                     getSystemService(CLIPBOARD_SERVICE)
