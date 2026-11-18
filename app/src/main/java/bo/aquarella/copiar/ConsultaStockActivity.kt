@@ -44,6 +44,7 @@ class ConsultaStockActivity : Activity() {
 
 override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    WebView.setWebContentsDebuggingEnabled(true)
 
     window.clearFlags(
         android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
