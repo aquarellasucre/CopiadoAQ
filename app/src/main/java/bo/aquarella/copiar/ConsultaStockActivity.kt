@@ -270,6 +270,25 @@ filaBusqueda.addView(
     }
 )
 
+val botonInspeccionar = crearBoton("Inspeccionar", 0f) {
+    inspeccionarAquarella()
+}
+
+filaBusqueda.addView(
+    botonInspeccionar.apply {
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            (42 * resources.displayMetrics.density).toInt()
+        ).apply {
+            setMargins(
+                (6 * resources.displayMetrics.density).toInt(),
+                0,
+                0,
+                0
+            )
+        }
+    }
+)
 
 raiz.addView(
     filaBusqueda,
