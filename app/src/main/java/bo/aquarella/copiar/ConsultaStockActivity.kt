@@ -1731,7 +1731,10 @@ linea.addView(
         LinearLayout.LayoutParams(0, dp(44), 1f)
     )
 
-    // Imagen del artículo: se descarga desde el repositorio público de GitHub.
+    // Primero se muestran los botones para cambiar entre las vistas.
+    raizDialogo.addView(selector)
+
+    // Imagen del artículo: se muestra debajo de los botones.
     val imagenArticulo = ImageView(this).apply {
         adjustViewBounds = true
         scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
@@ -1745,8 +1748,6 @@ linea.addView(
             dp(170)
         )
     )
-
-    raizDialogo.addView(selector)
 
     val contenido = android.widget.FrameLayout(this)
 
