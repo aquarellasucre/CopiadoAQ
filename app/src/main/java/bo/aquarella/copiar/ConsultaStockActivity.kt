@@ -1214,38 +1214,214 @@ linea.addView(
             )
         )
     }
-
+    
+    
     // -------------------------------------------------
-    // VISTA DATA GENERAL
+    // VISTA DATA GENERAL - TABLA ESTILO EXCEL
     // -------------------------------------------------
 
+    // Conservamos el texto original para el botón Copiar.
     val textoGeneral = buildString {
-
-        // Encabezados separados por tabulaciones
         append(cabeceras.joinToString("\t"))
         append("\n")
 
-        // Datos separados por tabulaciones
         registros.forEach { fila ->
             append(fila.joinToString("\t"))
             append("\n")
         }
     }
 
-    val textoTabla = TextView(this).apply {
-        text = textoGeneral
-        textSize = 12f
-        typeface = Typeface.MONOSPACE
-        setTextIsSelectable(true)
-        setPadding(dp(8), dp(8), dp(8), dp(8))
-        setHorizontallyScrolling(true)
+    val azulEncabezado = android.graphics.Color.rgb(42, 112, 174)
+    val azulBorde = android.graphics.Color.rgb(175, 194, 213)
+    val azulTotal = android.graphics.Color.rgb(218, 235, 250)
+    val fondoAlterno = android.graphics.Color.rgb(245, 248, 252)
+    val fondoBlanco = android.graphics.Color.WHITE
+    val textoOscuro = android.graphics.Color.rgb(35, 45, 55)
+
+    fun normalizarTexto(valor: String): String {
+    return java.text.Normalizer.normalize(
+        valor,
+        java.text.Normalizer.Form.NFD
+    )
+        .replace(Regex("\\p{Mn}+"), "")
+        .lowercase(Locale.ROOT)
+        .trim()
     }
 
+    val tablaExcel = android.widget.TableLayout(this).apply {
+        isShrinkAllColumns = false
+        isStretchAllColumns = false
+        setPadding(0, 0, 0, 0)
+    }
+
+    // Columnas identificadas como columnas de totales.
+    val columnasTotales = cabeceras.map { encabezado ->
+        normalizarTexto(encabezado).contains("total")
+    }
+
+    fun crearCelda(
+        contenido: String,
+        esEncabezado: Boolean,
+        esTotal: Boolean,
+        esPrimeraCeldaTotal: Boolean,
+        indiceFila: Int
+    ): TextView {
+
+        val fondo = when {
+            esEncabezado -> azulEncabezado
+            esPrimeraCeldaTotal -> android.graphics.Color.rgb(197, 222, 244)
+            esTotal -> azulTotal
+            indiceFila % 2 == 0 -> fondoBlanco
+            else -> fondoAlterno
+        }
+
+        return TextView(this).apply {
+            text = contenido
+            textSize = if (esEncabezado) 11f else 11f
+
+            gravity = Gravity.CENTER
+
+            setTextColor(
+                if (esEncabezado) {
+                    android.graphics.Color.WHITE
+                } else {
+                    textoOscuro
+                }
+            )
+
+            setTypeface(
+                null,
+                if (esEncabezado || esTotal) {
+                    Typeface.BOLD
+                } else {
+                    Typeface.NORMAL
+                }
+            )
+
+            setPadding(
+                dp(9),
+                dp(9),
+                dp(9),
+                dp(9)
+            )
+
+            minWidth = dp(if (esEncabezado) 90 else 75)
+
+            setTextIsSelectable(true)
+
+            background = GradientDrawable().apply {
+                setColor(fondo)
+                setStroke(dp(1), azulBorde)
+            }
+        }
+    }
+
+    // Encabezados.
+    val filaEncabezados = android.widget.TableRow(this).apply {
+        gravity = Gravity.CENTER_VERTICAL
+    }
+
+    cabeceras.forEach { encabezado ->
+
+        filaEncabezados.addView(
+            crearCelda(
+                contenido = encabezado,
+                esEncabezado = true,
+                esTotal = false,
+                esPrimeraCeldaTotal = false,
+                indiceFila = 0
+            ),
+            android.widget.TableRow.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+    }
+
+    tablaExcel.addView(
+        filaEncabezados,
+        android.widget.TableLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+    )
+
+    // Filas de información.
+    registros.forEachIndexed { indiceFila, fila ->
+
+        val esFilaTotal = fila.any {
+            normalizarTexto(it).contains("total")
+        }
+
+        val filaTabla = android.widget.TableRow(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        cabeceras.indices.forEach { indiceColumna ->
+
+            val contenido = valor(fila, indiceColumna)
+
+            val esColumnaTotal =
+                columnasTotales.getOrNull(indiceColumna) == true
+
+            val esPrimeraCeldaTotal =
+                esFilaTotal && indiceColumna == 0
+
+            filaTabla.addView(
+                crearCelda(
+                    contenido = contenido,
+                    esEncabezado = false,
+                    esTotal = esFilaTotal || esColumnaTotal,
+                    esPrimeraCeldaTotal = esPrimeraCeldaTotal,
+                    indiceFila = indiceFila
+                ),
+                android.widget.TableRow.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+
+        tablaExcel.addView(
+            filaTabla,
+            android.widget.TableLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
+    }
+
+    // Marco exterior con esquinas redondeadas.
+    val marcoTabla = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(1), dp(1), dp(1), dp(1))
+
+        background = GradientDrawable().apply {
+            setColor(android.graphics.Color.WHITE)
+            cornerRadius = dp(10).toFloat()
+            setStroke(dp(1), azulEncabezado)
+        }
+
+        clipToOutline = true
+
+        addView(
+            tablaExcel,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
+    }
+
+    // Desplazamiento horizontal.
     val scrollHorizontalGeneral =
         android.widget.HorizontalScrollView(this).apply {
+
             isHorizontalScrollBarEnabled = true
+            isFillViewport = false
+
             addView(
-                textoTabla,
+                marcoTabla,
                 ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1253,12 +1429,24 @@ linea.addView(
             )
         }
 
+    // Desplazamiento vertical.
     val scrollGeneral =
         android.widget.ScrollView(this).apply {
-            addView(scrollHorizontalGeneral)
+
+            isFillViewport = true
+
+            addView(
+                scrollHorizontalGeneral,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+
             visibility = android.view.View.GONE
         }
 
+    
     // -------------------------------------------------
     // CONTENEDOR Y SELECTOR DE VISTAS
     // -------------------------------------------------
@@ -1376,7 +1564,13 @@ linea.addView(
         dialogo.getButton(AlertDialog.BUTTON_POSITIVE)
             .setOnClickListener {
 
-                val contenidoCopiar = textoGeneral
+                val contenidoCopiar = if (
+                    scrollDisponibilidad.visibility == android.view.View.VISIBLE
+                        ) {
+                    textoCopiarDisponibilidad
+                    } else {
+                        textoGeneral
+                    }
 
                 val clipboard =
                     getSystemService(CLIPBOARD_SERVICE)
