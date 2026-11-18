@@ -13,6 +13,10 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
+import android.widget.ImageView
+import android.graphics.BitmapFactory
+import java.net.HttpURLConnection
+import java.net.URL
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -1727,6 +1731,21 @@ linea.addView(
         LinearLayout.LayoutParams(0, dp(44), 1f)
     )
 
+    // Imagen del artículo: se descarga desde el repositorio público de GitHub.
+    val imagenArticulo = ImageView(this).apply {
+        adjustViewBounds = true
+        scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+        visibility = android.view.View.GONE
+    }
+
+    raizDialogo.addView(
+        imagenArticulo,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(170)
+        )
+    )
+
     raizDialogo.addView(selector)
 
     val contenido = android.widget.FrameLayout(this)
@@ -1836,6 +1855,64 @@ linea.addView(
     }
 
     dialogo.show()
+
+    // El código del artículo se obtiene de los registros ya leídos.
+    val codigoArticulo = registros
+        .firstOrNull()
+        ?.getOrNull(indiceArticulo)
+        ?.trim()
+        .orEmpty()
+
+    if (codigoArticulo.isNotBlank()) {
+        cargarImagenArticulo(codigoArticulo, imagenArticulo)
+    }
+}
+
+
+private fun cargarImagenArticulo(codigo: String, vista: ImageView) {
+    Thread {
+        var bitmap: android.graphics.Bitmap? = null
+
+        try {
+            val codigoSeguro = java.net.URLEncoder.encode(codigo, "UTF-8")
+            val url = URL(
+                "https://raw.githubusercontent.com/aquarellasucre/AQ2026/main/JPG/$codigoSeguro.jpeg"
+            )
+            val conexion = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 10000
+                readTimeout = 15000
+                setRequestProperty("User-Agent", "CopiarAQ")
+            }
+
+            try {
+                if (conexion.responseCode == HttpURLConnection.HTTP_OK) {
+                    conexion.inputStream.use { entrada ->
+                        bitmap = BitmapFactory.decodeStream(entrada)
+                    }
+                }
+            } finally {
+                conexion.disconnect()
+            }
+        } catch (e: Exception) {
+            android.util.Log.w(
+                "ConsultaStock",
+                "No se pudo cargar la imagen del artículo $codigo",
+                e
+            )
+        }
+
+        runOnUiThread {
+            val imagenCargada = bitmap
+            if (imagenCargada != null) {
+                vista.setImageBitmap(imagenCargada)
+                vista.visibility = android.view.View.VISIBLE
+            } else {
+                vista.setImageDrawable(null)
+                vista.visibility = android.view.View.GONE
+            }
+        }
+    }.start()
 }
 
 

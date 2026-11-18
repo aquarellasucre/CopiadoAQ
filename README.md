@@ -61,3 +61,8 @@ Se añadió una pantalla interna para consultar el stock desde el sitio oficial 
 La pantalla utiliza el `WebView` y las cookies persistentes de Android para mantener la sesión. No guarda el usuario ni la contraseña. La consulta sigue ejecutándose mediante el formulario oficial de Aquarella (incluido su postback ASP.NET UpdatePanel); Copiar AQ solo lee la tabla ya actualizada.
 
 El workflow de GitHub Actions ahora también se activa con cambios en `consulta-stock`. Esta entrega es el código fuente integrado; debe compilarse desde GitHub Actions y probarse con una cuenta real antes de considerarlo terminado.
+
+
+## Imágenes de artículos en Leer data
+
+Al abrir el resultado de **Leer data**, Copiar AQ intenta cargar la imagen del artículo desde el repositorio público `aquarellasucre/AQ2026`, carpeta `JPG`, usando el código del artículo y la extensión `.jpeg`. La imagen se muestra proporcionalmente encima del selector de vistas. Si no existe o no hay conexión, permanece oculta y los resultados de stock siguen funcionando normalmente. Las imágenes se descargan en tiempo de ejecución y no se incorporan a la APK.
