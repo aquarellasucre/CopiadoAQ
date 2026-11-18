@@ -915,6 +915,81 @@ private fun leerTabla() {
     }
 }
 
+
+private fun inspeccionarAquarella() {
+
+    val javascript = """
+        (function() {
+            var tabla = document.getElementById('ContentPlaceHolder1_gvStock');
+
+            var elementos = Array.from(
+                document.querySelectorAll('body *')
+            );
+
+            var encontrados = elementos.filter(function(el) {
+                var texto = (el.innerText || el.textContent || '').trim();
+
+                return texto.toLowerCase().includes('lo sentimos') ||
+                       texto.toLowerCase().includes('no se encontraron existencias');
+            });
+
+            return JSON.stringify({
+                tablaExiste: !!tabla,
+                tablaHTML: tabla ? tabla.outerHTML : null,
+                mensajes: encontrados.map(function(el) {
+                    return {
+                        etiqueta: el.tagName,
+                        id: el.id,
+                        clase: typeof el.className === 'string'
+                            ? el.className : '',
+                        texto: (el.innerText || el.textContent || '').trim(),
+                        html: el.outerHTML.substring(0, 2000)
+                    };
+                })
+            });
+        })();
+    """.trimIndent()
+
+    webView.evaluateJavascript(javascript) { resultado ->
+
+        val informacion = resultado ?: "Sin resultado"
+
+        val contenido = android.widget.EditText(this).apply {
+            setText(informacion)
+            isSingleLine = false
+            setTextIsSelectable(true)
+            setPadding(24, 16, 24, 16)
+        }
+
+        val dialogo = android.app.AlertDialog.Builder(this)
+            .setTitle("Inspección de Aquarella")
+            .setView(contenido)
+            .setPositiveButton("Copiar") { _, _ ->
+                val portapapeles = getSystemService(
+                    android.content.Context.CLIPBOARD_SERVICE
+                ) as android.content.ClipboardManager
+
+                portapapeles.setPrimaryClip(
+                    android.content.ClipData.newPlainText(
+                        "Inspección Aquarella",
+                        informacion
+                    )
+                )
+
+                Toast.makeText(
+                    this,
+                    "Inspección copiada",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            .setNegativeButton("Cerrar", null)
+            .create()
+
+        dialogo.show()
+    }
+}
+
+
 private fun mostrarConsultaStock(
     cabeceras: List<String>,
     registros: List<List<String>>,
