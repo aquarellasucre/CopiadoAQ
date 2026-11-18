@@ -199,10 +199,12 @@ filaBusqueda.addView(
 )
 
 
+botonConsultar = crearBoton("Consultar", 0f) {
+    buscarArticulo()
+}
+
 filaBusqueda.addView(
-    botonConsultar = crearBoton("Consultar", 0f) {
-        buscarArticulo()
-    }.apply {
+    botonConsultar.apply {
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             (42 * resources.displayMetrics.density).toInt()
