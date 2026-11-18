@@ -125,6 +125,24 @@ filaBusqueda.addView(
     )
 )
 
+filaBusqueda.addView(
+    crearBoton("Limpiar", 0f) {
+        articuloInput.text.clear()
+    }.apply {
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            (42 * resources.displayMetrics.density).toInt()
+        ).apply {
+            setMargins(
+                (6 * resources.displayMetrics.density).toInt(),
+                0,
+                0,
+                0
+            )
+        }
+    }
+)
+
 
 filaBusqueda.addView(
     crearBoton("Consultar", 0f) {
