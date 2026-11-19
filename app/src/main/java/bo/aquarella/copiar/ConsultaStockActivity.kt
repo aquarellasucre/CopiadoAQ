@@ -151,9 +151,6 @@ private inner class StockJavascriptBridge {
 
 private fun construirPantalla() {
     val contenido = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-    val barra = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8), dp(2), dp(8), dp(2)) }
-    barra.addView(TextView(this).apply { text = "Consulta Stock"; textSize = 17f; setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER_VERTICAL }, LinearLayout.LayoutParams(0, dp(48), 1f))
-    contenido.addView(barra)
     contenido.addView(crearResumenSemana())
 
     val filaBusqueda = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(6), dp(2), dp(6), dp(2)) }
