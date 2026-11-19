@@ -115,3 +115,9 @@ La compilación de este ZIP no se ha ejecutado localmente en este entorno, por l
 
 ## Ajuste visual adicional
 - Se eliminó el encabezado fijo «Consulta Stock» de la pantalla principal para liberar espacio vertical.
+
+## Descarga de liquidaciones PDF desde Crear Pedido
+
+Se agregó el botón **Descargar Liquidación PDF** sobre el WebView de Crear Pedido / navegación libre. Al pulsarlo, el código busca el reporte `reportLiquidation.aspx` en el documento actual y frames, obtiene el número `NoLiq`, prepara el postback de exportación PDF del visor `crvLiquidation`, y devuelve el archivo a Android mediante una interfaz JavaScript. En Android 10+ lo guarda en `Descargas/Copiar AQ`; en versiones anteriores lo guarda en la carpeta Downloads privada de la aplicación.
+
+Pruebas manuales pendientes: abrir una liquidación con el icono imprimir, pulsar el botón, confirmar el PDF en Descargas, y comprobar el caso en que no hay un reporte abierto (debe mostrar un aviso). La compilación no se ejecutó en este entorno.
