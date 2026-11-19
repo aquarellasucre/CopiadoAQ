@@ -1063,13 +1063,48 @@ private fun leerTabla() {
                 return@evaluateJavascript
             }
 
+            // Identificamos las columnas de tallas de forma dinámica:
+            // no dependemos de que el encabezado use números, T, D u otra letra.
+            // Las columnas descriptivas conocidas se excluyen y, entre las restantes,
+            // consideramos talla aquella cuyos valores de las filas de datos son numéricos.
+            val columnasNoTalla = setOf(
+                "tienda", "storage", "almacen", "deposito", "bodega",
+                "articulo", "color", "cantidad", "precio", "total",
+                "subtotal", "importe", "valor"
+            )
+
+            val filasDatos = registros.filter { fila ->
+                !fila.getOrNull(indiceTienda).orEmpty()
+                    .trim()
+                    .startsWith("TOTALES", ignoreCase = true)
+            }
+
             val indicesTallas = cabeceras.indices.filter { indice ->
-            Regex("^(\\d+|T\\d+)$", RegexOption.IGNORE_CASE)
-            .matches(cabeceras[indice].trim())
+                val encabezadoNormalizado = normalizar(cabeceras[indice])
+                val esColumnaIdentificadora = indice == indiceTienda ||
+                    indice == indiceArticulo ||
+                    indice == indiceColor ||
+                    indice == indicePrecio
+                val esColumnaNoTalla = encabezadoNormalizado in columnasNoTalla ||
+                    encabezadoNormalizado.startsWith("total ") ||
+                    encabezadoNormalizado.startsWith("subtotal ")
+
+                if (esColumnaIdentificadora || esColumnaNoTalla || encabezadoNormalizado.isBlank()) {
+                    false
+                } else {
+                    val valores = filasDatos.map { fila ->
+                        fila.getOrNull(indice).orEmpty().trim()
+                    }.filter { it.isNotBlank() }
+
+                    valores.isNotEmpty() && valores.all { valor ->
+                        valor == "-" || valor == "—" ||
+                            valor.replace(",", "").toDoubleOrNull() != null
+                    }
+                }
             }
 
             if (indicesTallas.isEmpty()) {
-                mostrarMensajeStock("No se encontraron las columnas de tallas.")
+                mostrarMensajeStock("No se encontraron columnas de tallas con cantidades numéricas.")
                 return@evaluateJavascript
             }
 
@@ -1811,12 +1846,55 @@ linea.addView(
     // DIÁLOGO
     // -------------------------------------------------
 
+    // Título personalizado con botón circular rojo para cerrar el resultado.
+    val tituloDialogo = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(dp(20), dp(8), dp(12), dp(8))
+    }
+
+    val textoTitulo = TextView(this).apply {
+        text = "Resultado de stock"
+        textSize = 20f
+        setTypeface(null, Typeface.BOLD)
+        setTextColor(android.graphics.Color.BLACK)
+        gravity = Gravity.CENTER_VERTICAL
+    }
+
+    val botonCerrarX = TextView(this).apply {
+        text = "×"
+        textSize = 27f
+        setTypeface(null, Typeface.BOLD)
+        setTextColor(android.graphics.Color.WHITE)
+        gravity = Gravity.CENTER
+        contentDescription = "Cerrar resultado de stock"
+        isClickable = true
+        isFocusable = true
+        background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(android.graphics.Color.rgb(220, 45, 45))
+        }
+    }
+
+    tituloDialogo.addView(
+        textoTitulo,
+        LinearLayout.LayoutParams(0, dp(48), 1f)
+    )
+    tituloDialogo.addView(
+        botonCerrarX,
+        LinearLayout.LayoutParams(dp(40), dp(40))
+    )
+
     val dialogo = AlertDialog.Builder(this)
-        .setTitle("Resultado de stock")
+        .setCustomTitle(tituloDialogo)
         .setView(raizDialogo)
         .setPositiveButton("Copiar", null)
         .setNegativeButton("Cerrar", null)
         .create()
+
+    botonCerrarX.setOnClickListener {
+        dialogo.dismiss()
+    }
 
     dialogo.setOnShowListener {
 

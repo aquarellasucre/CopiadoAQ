@@ -66,3 +66,7 @@ El workflow de GitHub Actions ahora también se activa con cambios en `consulta-
 ## Imágenes de artículos en Leer data
 
 Al abrir el resultado de **Leer data**, Copiar AQ intenta cargar la imagen del artículo desde el repositorio público `aquarellasucre/AQ2026`, carpeta `JPG`, usando el código del artículo y la extensión `.jpeg`. La imagen se muestra proporcionalmente encima del selector de vistas. Si no existe o no hay conexión, permanece oculta y los resultados de stock siguen funcionando normalmente. Las imágenes se descargan en tiempo de ejecución y no se incorporan a la APK.
+
+## Reconocimiento dinámico de tallas y cierre del resultado
+
+La lectura de stock identifica dinámicamente las columnas de tallas a partir de sus valores numéricos, sin limitar los encabezados a números o prefijos de letras específicos. Se excluyen las columnas descriptivas y de totales conocidas. El popup de resultados incluye además un botón circular rojo con una X en la esquina superior derecha para cerrarlo.
