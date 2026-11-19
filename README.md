@@ -69,4 +69,4 @@ Al abrir el resultado de **Leer data**, Copiar AQ intenta cargar la imagen del a
 
 ## Reconocimiento dinámico de tallas y cierre del resultado
 
-La lectura de stock identifica dinámicamente las columnas de tallas a partir de sus valores numéricos, sin limitar los encabezados a números o prefijos de letras específicos. Se excluyen las columnas descriptivas y de totales conocidas. El popup de resultados incluye además un botón circular rojo con una X en la esquina superior derecha para cerrarlo.
+La lectura de stock identifica dinámicamente las columnas de tallas sin limitar los encabezados a números o prefijos de letras específicos. Primero excluye columnas descriptivas conocidas y analiza sus valores. Cuando Aquarella proporciona una fila `TOTALES`, intenta validar cada columna candidata comparando la suma de las tiendas con el total de esa columna; si al menos una columna se valida, utiliza las columnas validadas. Si no hay fila de totales o no se valida ninguna columna, mantiene el reconocimiento dinámico por valores para evitar bloquear la lectura. El popup incluye un botón circular de cierre con acabado moderno, rojo cálido, borde sutil y efecto táctil.

@@ -1063,15 +1063,24 @@ private fun leerTabla() {
                 return@evaluateJavascript
             }
 
-            // Identificamos las columnas de tallas de forma dinámica:
-            // no dependemos de que el encabezado use números, T, D u otra letra.
-            // Las columnas descriptivas conocidas se excluyen y, entre las restantes,
-            // consideramos talla aquella cuyos valores de las filas de datos son numéricos.
+            // Reconocimiento dinámico de columnas de tallas.
+            // No depende de nombres específicos (T, D, números, letras, etc.).
+            // Primero descarta columnas identificadoras/descriptivas conocidas y
+            // busca columnas con valores de cantidades en las filas de tiendas.
+            // Si Aquarella incluye una fila TOTALES, también valida que la suma
+            // de las tiendas coincida con el total de cada columna candidata.
             val columnasNoTalla = setOf(
                 "tienda", "storage", "almacen", "deposito", "bodega",
                 "articulo", "color", "cantidad", "precio", "total",
-                "subtotal", "importe", "valor"
+                "subtotal", "importe", "valor", "peso", "codigo", "cod",
+                "ubicacion", "descuento", "porcentaje", "observacion"
             )
+
+            val filasTotales = registros.filter { fila ->
+                fila.getOrNull(indiceTienda).orEmpty()
+                    .trim()
+                    .startsWith("TOTALES", ignoreCase = true)
+            }
 
             val filasDatos = registros.filter { fila ->
                 !fila.getOrNull(indiceTienda).orEmpty()
@@ -1079,7 +1088,15 @@ private fun leerTabla() {
                     .startsWith("TOTALES", ignoreCase = true)
             }
 
-            val indicesTallas = cabeceras.indices.filter { indice ->
+            fun valorNumericoStock(texto: String): Double? {
+                val limpio = texto.trim().replace(",", "")
+                return when (limpio) {
+                    "-", "—" -> 0.0
+                    else -> limpio.toDoubleOrNull()
+                }
+            }
+
+            val indicesCandidatos = cabeceras.indices.filter { indice ->
                 val encabezadoNormalizado = normalizar(cabeceras[indice])
                 val esColumnaIdentificadora = indice == indiceTienda ||
                     indice == indiceArticulo ||
@@ -1097,10 +1114,44 @@ private fun leerTabla() {
                     }.filter { it.isNotBlank() }
 
                     valores.isNotEmpty() && valores.all { valor ->
-                        valor == "-" || valor == "—" ||
-                            valor.replace(",", "").toDoubleOrNull() != null
+                        valorNumericoStock(valor) != null
                     }
                 }
+            }
+
+            // Comprobación adicional basada en la fila TOTALES, si está disponible.
+            // Las columnas cuya suma por tiendas coincide con el total tienen
+            // evidencia más fuerte de ser cantidades de stock.
+            val indicesTallasValidados = if (filasTotales.isNotEmpty()) {
+                indicesCandidatos.filter { indice ->
+                    val totalTexto = filasTotales.firstOrNull()
+                        ?.getOrNull(indice)
+                        ?.trim()
+                        .orEmpty()
+                    val totalEsperado = valorNumericoStock(totalTexto)
+
+                    if (totalEsperado == null) {
+                        false
+                    } else {
+                        val sumaTiendas = filasDatos.sumOf { fila ->
+                            valorNumericoStock(
+                                fila.getOrNull(indice).orEmpty().trim()
+                            ) ?: 0.0
+                        }
+                        kotlin.math.abs(sumaTiendas - totalEsperado) < 0.0001
+                    }
+                }
+            } else {
+                emptyList()
+            }
+
+            // Si la fila TOTALES permite validar al menos una columna,
+            // usamos el grupo validado. Si no, conservamos el reconocimiento
+            // dinámico por valores numéricos para no bloquear consultas legítimas.
+            val indicesTallas = if (indicesTallasValidados.isNotEmpty()) {
+                indicesTallasValidados
+            } else {
+                indicesCandidatos
             }
 
             if (indicesTallas.isEmpty()) {
@@ -1863,17 +1914,33 @@ linea.addView(
 
     val botonCerrarX = TextView(this).apply {
         text = "×"
-        textSize = 27f
+        textSize = 25f
         setTypeface(null, Typeface.BOLD)
         setTextColor(android.graphics.Color.WHITE)
         gravity = Gravity.CENTER
         contentDescription = "Cerrar resultado de stock"
         isClickable = true
         isFocusable = true
-        background = GradientDrawable().apply {
+        elevation = dp(2).toFloat()
+
+        val colorRojoCalido = android.graphics.Color.rgb(232, 88, 75)
+        val colorBorde = android.graphics.Color.rgb(207, 67, 56)
+        val formaCircular = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(android.graphics.Color.rgb(220, 45, 45))
+            setColor(colorRojoCalido)
+            setStroke(dp(1), colorBorde)
         }
+        val mascara = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(android.graphics.Color.WHITE)
+        }
+        background = android.graphics.drawable.RippleDrawable(
+            android.content.res.ColorStateList.valueOf(
+                android.graphics.Color.rgb(255, 190, 180)
+            ),
+            formaCircular,
+            mascara
+        )
     }
 
     tituloDialogo.addView(
@@ -1882,7 +1949,7 @@ linea.addView(
     )
     tituloDialogo.addView(
         botonCerrarX,
-        LinearLayout.LayoutParams(dp(40), dp(40))
+        LinearLayout.LayoutParams(dp(42), dp(42))
     )
 
     val dialogo = AlertDialog.Builder(this)
