@@ -111,3 +111,7 @@ La compilación de este ZIP no se ha ejecutado localmente en este entorno, por l
 6. Usar Atrás en cada módulo y comprobar que retrocede en el historial correspondiente.
 
 **Nota de compilación:** este entorno no dispone de Gradle/Android SDK; el proyecto debe compilarse mediante el flujo Android Studio o GitHub Actions antes de instalar el APK.
+
+
+## Ajuste visual adicional
+- Se eliminó el encabezado fijo «Consulta Stock» de la pantalla principal para liberar espacio vertical.
