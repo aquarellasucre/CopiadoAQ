@@ -10,6 +10,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.Environment
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.webkit.CookieManager
@@ -26,6 +27,12 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import android.content.ContentValues
+import android.os.Build
+import android.provider.MediaStore
+import android.util.Base64
+import java.io.File
+import java.io.FileOutputStream
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import java.text.SimpleDateFormat
@@ -65,6 +72,7 @@ class ConsultaStockActivity : Activity() {
     private var loginAttemptInProgress = false
     private var navegandoAConsultaTrasLogin = false
     private lateinit var drawerLayout: DrawerLayout
+    private lateinit var botonDescargarLiquidacion: Button
 
 override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -147,6 +155,73 @@ private inner class StockJavascriptBridge {
             }
         }
     }
+}
+
+private inner class LiquidacionJavascriptBridge {
+    @android.webkit.JavascriptInterface
+    fun pdfDescargado(nombre: String, base64: String) {
+        runOnUiThread {
+            try {
+                val bytes = Base64.decode(base64, Base64.DEFAULT)
+                guardarPdfLiquidacion(nombre, bytes)
+            } catch (e: Exception) {
+                Toast.makeText(this@ConsultaStockActivity, "No se pudo guardar el PDF: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    @android.webkit.JavascriptInterface
+    fun errorDescarga(mensaje: String) {
+        runOnUiThread { Toast.makeText(this@ConsultaStockActivity, mensaje, Toast.LENGTH_LONG).show() }
+    }
+}
+
+private fun guardarPdfLiquidacion(nombreOriginal: String, bytes: ByteArray) {
+    val nombre = nombreOriginal.replace(Regex("[^A-Za-z0-9._-]"), "_").let { if (it.endsWith(".pdf", true)) it else "$it.pdf" }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val values = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, nombre)
+            put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
+            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Copiar AQ")
+            put(MediaStore.Downloads.IS_PENDING, 1)
+        }
+        val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            ?: throw IllegalStateException("No se pudo crear el archivo en Descargas")
+        contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+            ?: throw IllegalStateException("No se pudo escribir el PDF")
+        values.clear(); values.put(MediaStore.Downloads.IS_PENDING, 0)
+        contentResolver.update(uri, values, null, null)
+        Toast.makeText(this, "Liquidación guardada en Descargas/Copiar AQ: $nombre", Toast.LENGTH_LONG).show()
+    } else {
+        val dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
+        val file = File(dir, nombre)
+        FileOutputStream(file).use { it.write(bytes) }
+        Toast.makeText(this, "PDF guardado: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+    }
+}
+
+private fun descargarLiquidacionDesdeWebView() {
+    if (moduloActivo != "PEDIDO") {
+        Toast.makeText(this, "Abre primero Crear Pedido / navegación Aquarella", Toast.LENGTH_SHORT).show()
+        return
+    }
+    val js = """(function(){
+      var docs=[],seen=new Set();
+      function scan(d){if(!d||seen.has(d))return;seen.add(d);var u='';try{u=d.location.href}catch(e){}
+        if(/reportLiquidation\.aspx/i.test(u)&&d.querySelector('[id*="crvLiquidation"]')){
+          var q=new URL(u).searchParams;var n=q.get('NoLiq')||q.get('Noliq')||q.get('noLiq');if(n)docs.push({d:d,n:n});}
+        Array.from(d.querySelectorAll('iframe,frame')).forEach(function(f){try{scan(f.contentDocument)}catch(e){}});}
+      try{scan(document);if(!docs.length){AndroidLiquidation.errorDescarga('No se encontró el reporte. Abre primero una liquidación con el icono de imprimir.');return;}
+        var x=docs.find(function(o){return o.d.forms.length>0})||docs[0],d=x.d,n=x.n,f=d.forms[0];if(!f){AndroidLiquidation.errorDescarga('No se encontró el formulario de exportación del reporte.');return;}
+        var v={};Array.from(f.elements).forEach(function(e){if(e.name&&!e.disabled&&(e.type!=='checkbox'&&e.type!=='radio'||e.checked))v[e.name]=e.value;});
+        v.__EVENTTARGET='crvLiquidation';v.__EVENTARGUMENT='{"text":"PDF","range":"false","tb":"crexport"}';
+        var body=new URLSearchParams(v);fetch(f.action||d.location.href,{method:'POST',credentials:'include',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()})
+        .then(function(r){if(!r.ok)throw Error('Error HTTP '+r.status);return r.blob();})
+        .then(function(b){if(b.type==='text/html'||b.size<100)throw Error('Aquarella no devolvió el PDF. Comprueba que el reporte esté abierto.');
+          var reader=new FileReader();reader.onload=function(){var data=String(reader.result).split(',')[1];AndroidLiquidation.pdfDescargado(n+'.pdf',data);};reader.onerror=function(){throw Error('No se pudo leer el archivo PDF');};reader.readAsDataURL(b);})
+        .catch(function(e){AndroidLiquidation.errorDescarga('No se pudo descargar el PDF: '+e.message);});
+      }catch(e){AndroidLiquidation.errorDescarga('Error al exportar: '+e.message);}})();"""
+    pedidoWebView.evaluateJavascript(js, null)
 }
 
 private fun construirPantalla() {
@@ -262,10 +337,19 @@ private fun construirPantalla() {
             }
         }
     }
+    pedidoWebView.addJavascriptInterface(LiquidacionJavascriptBridge(), "AndroidLiquidation")
     contenedorWeb = FrameLayout(this)
     contenedorWeb.addView(webView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
     contenedorWeb.addView(pedidoWebView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
     pedidoWebView.visibility = View.GONE
+    botonDescargarLiquidacion = crearBoton("↓ Descargar Liquidación PDF", 0f) { descargarLiquidacionDesdeWebView() }.apply {
+        textSize = 13f
+        visibility = View.GONE
+        elevation = dp(8).toFloat()
+    }
+    contenedorWeb.addView(botonDescargarLiquidacion, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44), Gravity.TOP or Gravity.RIGHT).apply {
+        setMargins(dp(10), dp(10), dp(10), dp(10))
+    })
     contenido.addView(contenedorWeb, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
     drawerLayout = DrawerLayout(this).apply {
         setScrimColor(0x99000000.toInt())
@@ -296,6 +380,7 @@ private fun crearMenuLateral(): View {
 private fun mostrarModuloStock() {
     moduloActivo = "STOCK"
     pedidoWebView.visibility = View.GONE
+    botonDescargarLiquidacion.visibility = View.GONE
     webView.visibility = View.VISIBLE
     consultaLista = false
     consultaEnCurso = false
@@ -308,6 +393,7 @@ private fun mostrarModuloPedido(abrirInicio: Boolean) {
     moduloActivo = "PEDIDO"
     webView.visibility = View.GONE
     pedidoWebView.visibility = View.VISIBLE
+    botonDescargarLiquidacion.visibility = View.VISIBLE
     if (abrirInicio || pedidoWebView.url.isNullOrBlank() || pedidoWebView.url == "about:blank") {
         urlPendientePedido = "https://aq.coreva.com.bo/aquarella/Aquarella/Logistica/panelOrdersCustomer.aspx"
         pedidoWebView.loadUrl(urlPendientePedido)
