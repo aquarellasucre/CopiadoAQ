@@ -130,3 +130,11 @@ Se añadió una pantalla independiente accesible desde Plantillas de mensajes me
 Para compilar desde GitHub Actions, configurar el secreto del repositorio `COPIAR_AQ_PEDIDOS_TOKEN` con el mismo token definido en el Apps Script de registro. El workflow lo inyecta como variable de entorno y Gradle lo coloca en BuildConfig. La URL del Apps Script de pruebas está definida en `RegistroPedidoActivity`.
 
 La integración aún debe probarse en un teléfono: validar compilación, conexión, respuesta del Apps Script y aparición de la fila en `Pedidos_OH`.
+
+## Registro de pedidos: agregar artículos (fase 2)
+
+La pantalla Registro de Pedido ahora permite, después de crear la cabecera, abrir `Agregar artículos` y guardar cada línea en `Pedidos_ODs`. El catálogo todavía no está conectado; los artículos se ingresan manualmente para probar la estructura y los cálculos.
+
+En esta fase, `Descuento` se interpreta como **monto total en Bs descontado de esa línea**, no porcentaje. `Subtotal = Cantidad × Precio - Descuento`. Cada línea se guarda inmediatamente en Google Sheets y Apps Script recalcula el total de la cabecera en `Pedidos_OH[Total]`.
+
+Antes de compilar esta versión, actualizar el código del Apps Script con el archivo `RegistroPedidos.gs` que acompaña el ZIP, sustituir `API_TOKEN` por el token secreto actual y publicar una nueva versión de la implementación web. Luego compilar la APK en GitHub Actions.

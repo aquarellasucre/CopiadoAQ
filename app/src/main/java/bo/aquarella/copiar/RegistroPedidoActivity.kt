@@ -180,8 +180,15 @@ class RegistroPedidoActivity : Activity() {
                     val id = resultado?.optString("PedidoID", "").orEmpty()
                     AlertDialog.Builder(this)
                         .setTitle("Pedido registrado")
-                        .setMessage("El pedido se guardó correctamente en Google Sheets.\n\nPedidoID:\n$id")
-                        .setPositiveButton("Nuevo pedido") { _, _ -> limpiarFormulario() }
+                        .setMessage("El pedido se guardó correctamente en Google Sheets.\n\nPedidoID:\n$id\n\nAhora puedes agregar los artículos al pedido.")
+                        .setPositiveButton("Agregar artículos") { _, _ ->
+                            val intent = android.content.Intent(this, DetallePedidoActivity::class.java)
+                            intent.putExtra("PedidoID", id)
+                            intent.putExtra("Cliente", nombreCliente)
+                            startActivity(intent)
+                            finish()
+                        }
+                        .setNeutralButton("Nuevo pedido") { _, _ -> limpiarFormulario() }
                         .setNegativeButton("Cerrar") { _, _ -> finish() }
                         .setCancelable(false)
                         .show()
