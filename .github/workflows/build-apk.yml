@@ -44,13 +44,22 @@ jobs:
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > copiar-aq-release.jks
 
-      - name: Construir APK firmada
-        env:
+            - name: Construir APK firmada
+          env:
           COPIAR_AQ_TOKEN: ${{ secrets.COPIAR_AQ_TOKEN }}
+          COPIAR_AQ_PEDIDOS_TOKEN: ${{ secrets.COPIAR_AQ_PEDIDOS_TOKEN }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: gradle assembleDebug --stacktrace
+          run: |
+          if [ -z "$COPIAR_AQ_PEDIDOS_TOKEN" ]; then
+            echo "::error::El token de pedidos NO llegó a GitHub Actions."
+            exit 1
+          fi
+
+          echo "Token de pedidos recibido. Longitud: ${#COPIAR_AQ_PEDIDOS_TOKEN}"
+
+          gradle assembleDebug --stacktrace
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4
