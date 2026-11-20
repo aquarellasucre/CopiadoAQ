@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -70,18 +71,25 @@ class DetallePedidoActivity : Activity() {
             setPadding(0, dp(8), 0, dp(16))
         }, parametros(0))
         scrollContenido.addView(TextView(this).apply {
-            text = "Ingresa los artículos manualmente. El catálogo todavía no está conectado."
+            text = "Busca el artículo en el catálogo. Al seleccionarlo se cargarán sus datos y precio."
             textSize = 13f
             setPadding(0, 0, 0, dp(14))
         }, parametros(0))
 
-        articulo = campo("Código / artículo (obligatorio)")
+        articulo = campo("Código / artículo (escribe o pega)")
+        val buscar = Button(this).apply {
+            text = "Buscar en catálogo"
+            isAllCaps = false
+            setOnClickListener { buscarCatalogo() }
+        }
+        scrollContenido.addView(articulo, parametros(4))
+        scrollContenido.addView(buscar, parametros(10))
         descripcion = campo("Descripción (opcional)")
         talla = campo("Talla (opcional)")
         cantidad = campo("Cantidad", numeric = true).apply { setText("1") }
         precio = campo("Precio unitario (Bs)", decimal = true)
         descuento = campo("Descuento total de esta línea (Bs, opcional)", decimal = true).apply { setText("0") }
-        listOf(articulo, descripcion, talla, cantidad, precio, descuento).forEach { scrollContenido.addView(it, parametros(10)) }
+        listOf(descripcion, talla, cantidad, precio, descuento).forEach { scrollContenido.addView(it, parametros(10)) }
 
         guardarLinea = Button(this).apply {
             text = "Guardar artículo"
@@ -132,6 +140,114 @@ class DetallePedidoActivity : Activity() {
     private fun parametros(margen: Int) = LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
     ).apply { bottomMargin = dp(margen) }
+
+
+    private fun buscarCatalogo() {
+        val consulta = articulo.text.toString().trim()
+        if (consulta.isBlank()) {
+            articulo.error = "Escribe o pega un código o texto para buscar"
+            articulo.requestFocus()
+            return
+        }
+        val token = BuildConfig.COPIAR_AQ_PEDIDOS_TOKEN
+        if (token.isBlank()) {
+            AlertDialog.Builder(this).setTitle("Falta configurar el acceso")
+                .setMessage("La APK no contiene el token de Registro de Pedidos.")
+                .setPositiveButton("Aceptar", null).show()
+            return
+        }
+
+        val botonBuscar = (articulo.parent as? ViewGroup)?.getChildAt(4) as? Button
+        botonBuscar?.isEnabled = false
+        botonBuscar?.text = "Buscando…"
+        val datos = JSONObject().apply {
+            put("token", token)
+            put("accion", "buscarCatalogo")
+            put("consulta", consulta)
+        }
+
+        thread {
+            var respuesta: JSONObject? = null
+            var error: String? = null
+            try {
+                val conn = (URL(API_URL).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    connectTimeout = 20000
+                    readTimeout = 30000
+                    doOutput = true
+                    instanceFollowRedirects = true
+                    setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                    setRequestProperty("Accept", "application/json")
+                }
+                conn.outputStream.use { it.write(datos.toString().toByteArray(Charsets.UTF_8)) }
+                val status = conn.responseCode
+                val stream = if (status in 200..299) conn.inputStream else conn.errorStream
+                val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+                conn.disconnect()
+                if (status !in 200..299) throw Exception("HTTP $status: $body")
+                respuesta = JSONObject(body)
+                if (!respuesta!!.optBoolean("ok")) throw Exception(respuesta!!.optString("mensaje", "Error en la búsqueda"))
+            } catch (e: Exception) {
+                error = e.message ?: "Error de conexión"
+            }
+            runOnUiThread {
+                botonBuscar?.isEnabled = true
+                botonBuscar?.text = "Buscar en catálogo"
+                if (error != null) {
+                    AlertDialog.Builder(this).setTitle("No se pudo buscar")
+                        .setMessage(error).setPositiveButton("Aceptar", null).show()
+                    return@runOnUiThread
+                }
+
+                val resultados = respuesta?.optJSONArray("resultados")
+                if (resultados == null || resultados.length() == 0) {
+                    AlertDialog.Builder(this).setTitle("Artículo no encontrado")
+                        .setMessage("No se encontraron coincidencias para '$consulta'. Puedes verificar el código e intentarlo nuevamente.")
+                        .setPositiveButton("Aceptar", null).show()
+                    return@runOnUiThread
+                }
+
+                val opciones = ArrayList<JSONObject>()
+                val etiquetas = ArrayList<String>()
+                for (i in 0 until resultados.length()) {
+                    val item = resultados.optJSONObject(i) ?: continue
+                    opciones.add(item)
+                    val codigo = item.optString("Articulo")
+                    val desc = item.optString("BRV_DESCRIPTION")
+                    val precioItem = item.optDouble("Precio", 0.0)
+                    val stock = item.optString("StockID")
+                    etiquetas.add(buildString {
+                        append(codigo)
+                        if (desc.isNotBlank()) append(" — ").append(desc)
+                        append(" — Bs ").append(formato(precioItem))
+                        if (stock.isNotBlank()) append(" — ").append(stock)
+                    })
+                }
+
+                if (opciones.size == 1) {
+                    seleccionarArticulo(opciones[0])
+                } else {
+                    AlertDialog.Builder(this)
+                        .setTitle("${opciones.size} coincidencias (selecciona una)")
+                        .setItems(etiquetas.toTypedArray()) { _, cual ->
+                            seleccionarArticulo(opciones[cual])
+                        }
+                        .setNegativeButton("Cancelar", null)
+                        .show()
+                }
+            }
+        }
+    }
+
+    private fun seleccionarArticulo(item: JSONObject) {
+        articulo.setText(item.optString("Articulo"))
+        descripcion.setText(item.optString("BRV_DESCRIPTION"))
+        precio.setText(String.format(Locale.US, "%.2f", item.optDouble("Precio", 0.0)))
+        talla.setText("")
+        cantidad.setText("1")
+        descuento.setText("0")
+        cantidad.requestFocus()
+    }
 
     private fun enviarDetalle() {
         val codigo = articulo.text.toString().trim()
@@ -196,7 +312,14 @@ class DetallePedidoActivity : Activity() {
                     totalAcumulado = result?.optDouble("TotalPedido", totalAcumulado + subtotal) ?: (totalAcumulado + subtotal)
                     resumen.text = "Artículos guardados en esta sesión: $cantidadLineas"
                     totalSesion.text = "Total del pedido: Bs ${formato(totalAcumulado)}"
-                    Toast.makeText(this, "Artículo guardado. Subtotal: Bs ${formato(subtotal)}", Toast.LENGTH_LONG).show()
+                    val acumulado = result?.optBoolean("Acumulado", false) == true
+                    val cantidadLinea = result?.optDouble("CantidadLinea", qty) ?: qty
+                    val mensaje = if (acumulado) {
+                        "Cantidad acumulada: ${formato(cantidadLinea)}. Total del pedido: Bs ${formato(totalAcumulado)}"
+                    } else {
+                        "Artículo agregado. Subtotal: Bs ${formato(subtotal)}"
+                    }
+                    Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show()
                     articulo.text.clear(); descripcion.text.clear(); talla.text.clear(); cantidad.setText("1"); precio.text.clear(); descuento.setText("0")
                     articulo.requestFocus()
                 }
