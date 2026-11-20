@@ -28,6 +28,16 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Verificar token de Registro de Pedidos
+        env:
+          PEDIDOS_TOKEN: ${{ secrets.COPIAR_AQ_PEDIDOS_TOKEN }}
+        run: |
+          if [ -z "$PEDIDOS_TOKEN" ]; then
+            echo "::error::Falta COPIAR_AQ_PEDIDOS_TOKEN o está vacío/no disponible."
+            exit 1
+          fi
+          echo "Token de Registro de Pedidos recibido correctamente."
+
       - name: Recuperar clave de firma
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
