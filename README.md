@@ -121,3 +121,12 @@ La compilación de este ZIP no se ha ejecutado localmente en este entorno, por l
 Se agregó el botón **Descargar Liquidación PDF** sobre el WebView de Crear Pedido / navegación libre. Al pulsarlo, el código busca el reporte `reportLiquidation.aspx` en el documento actual y frames, obtiene el número `NoLiq`, prepara el postback de exportación PDF del visor `crvLiquidation`, y devuelve el archivo a Android mediante una interfaz JavaScript. En Android 10+ lo guarda en `Descargas/Copiar AQ`; en versiones anteriores lo guarda en la carpeta Downloads privada de la aplicación.
 
 Pruebas manuales pendientes: abrir una liquidación con el icono imprimir, pulsar el botón, confirmar el PDF en Descargas, y comprobar el caso en que no hay un reporte abierto (debe mostrar un aviso). La compilación no se ejecutó en este entorno.
+
+
+## Módulo Registro de Pedidos (pruebas Google Sheets)
+
+Se añadió una pantalla independiente accesible desde Plantillas de mensajes mediante **Registrar Pedido (pruebas)**. La primera versión registra solamente la cabecera en `Pedidos_OH` enviando `registrarPedido` al Apps Script de pruebas; todavía no incluye artículos ni escribe en `Pedidos_ODs`. Campos: Cliente (obligatorio), TipoVenta (Contado/Crédito/Cotización), Descripción y UsuarioRegistro (opcionales). Al guardar, la APK muestra el `PedidoID` devuelto y permite comenzar otro registro.
+
+Para compilar desde GitHub Actions, configurar el secreto del repositorio `COPIAR_AQ_PEDIDOS_TOKEN` con el mismo token definido en el Apps Script de registro. El workflow lo inyecta como variable de entorno y Gradle lo coloca en BuildConfig. La URL del Apps Script de pruebas está definida en `RegistroPedidoActivity`.
+
+La integración aún debe probarse en un teléfono: validar compilación, conexión, respuesta del Apps Script y aparición de la fila en `Pedidos_OH`.
