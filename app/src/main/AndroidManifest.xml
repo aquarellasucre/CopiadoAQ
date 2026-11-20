@@ -41,6 +41,9 @@
         </activity>
             
         <activity
+            android:name=".RegistroPedidoActivity"
+            android:exported="false" />
+        <activity
             android:name=".ConsultaStockActivity"
             android:exported="false" />
         <activity

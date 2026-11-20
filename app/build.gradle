@@ -18,6 +18,8 @@ android {
 
         buildConfigField "String", "COPIAR_AQ_TOKEN",
                 "\"${System.getenv('COPIAR_AQ_TOKEN') ?: ''}\""
+        buildConfigField "String", "COPIAR_AQ_PEDIDOS_TOKEN",
+                "\"${System.getenv('COPIAR_AQ_PEDIDOS_TOKEN') ?: ''}\""
     }
 
     signingConfigs {

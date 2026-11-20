@@ -72,6 +72,20 @@ class PlantillasActivity : Activity() {
 
         principal.addView(subtitulo)
 
+        val registrarPedido = Button(this).apply {
+            text = "Registrar Pedido (pruebas)"
+            isAllCaps = false
+            setOnClickListener {
+                startActivity(
+                    android.content.Intent(
+                        this@PlantillasActivity,
+                        RegistroPedidoActivity::class.java
+                    )
+                )
+            }
+        }
+        principal.addView(registrarPedido)
+
         val consultaStock = Button(this).apply {
             text = "Consultar stock Aquarella"
             isAllCaps = false
