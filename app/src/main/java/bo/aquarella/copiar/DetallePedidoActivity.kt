@@ -28,8 +28,8 @@ class DetallePedidoActivity : Activity() {
     private lateinit var clienteNombre: String
     private lateinit var articulo: EditText
     private lateinit var descripcion: EditText
-    private lateinit var talla: EditText
-    private lateinit var cantidad: EditText
+    private lateinit var seleccionStock: TextView
+    private lateinit var consultarSeleccion: Button
     private lateinit var precio: EditText
     private lateinit var descuento: EditText
     private lateinit var guardarLinea: Button
@@ -39,6 +39,7 @@ class DetallePedidoActivity : Activity() {
 
     private var cantidadLineas = 0
     private var totalAcumulado = 0.0
+    private val REQUEST_SELECCION_STOCK = 731
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,16 +86,31 @@ class DetallePedidoActivity : Activity() {
         scrollContenido.addView(articulo, parametros(4))
         scrollContenido.addView(buscar, parametros(10))
         descripcion = campo("Descripción (opcional)")
-        talla = campo("Talla (opcional)")
-        cantidad = campo("Cantidad", numeric = true).apply { setText("1") }
         precio = campo("Precio unitario (Bs)", decimal = true)
-        descuento = campo("Descuento total de esta línea (Bs, opcional)", decimal = true).apply { setText("0") }
-        listOf(descripcion, talla, cantidad, precio, descuento).forEach { scrollContenido.addView(it, parametros(10)) }
+        descuento = campo("Descuento total de la selección (Bs, opcional)", decimal = true).apply { setText("0") }
+        scrollContenido.addView(descripcion, parametros(10))
+        scrollContenido.addView(precio, parametros(10))
+        scrollContenido.addView(descuento, parametros(10))
+
+        seleccionStock = TextView(this).apply {
+            text = "Todavía no se seleccionaron tallas."
+            textSize = 14f
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+        }
+        scrollContenido.addView(seleccionStock, parametros(6))
+
+        consultarSeleccion = Button(this).apply {
+            text = "Consultar stock y seleccionar"
+            isAllCaps = false
+            setOnClickListener { abrirSeleccionStock() }
+        }
+        scrollContenido.addView(consultarSeleccion, parametros(10))
 
         guardarLinea = Button(this).apply {
-            text = "Guardar artículo"
+            text = "Agregar selección al pedido"
             isAllCaps = false
-            setOnClickListener { enviarDetalle() }
+            isEnabled = false
+            setOnClickListener { guardarSeleccionStock() }
         }
         scrollContenido.addView(guardarLinea, parametros(10))
 
@@ -243,84 +259,123 @@ class DetallePedidoActivity : Activity() {
         articulo.setText(item.optString("Articulo"))
         descripcion.setText(item.optString("BRV_DESCRIPTION"))
         precio.setText(String.format(Locale.US, "%.2f", item.optDouble("Precio", 0.0)))
-        talla.setText("")
-        cantidad.setText("1")
         descuento.setText("0")
-        cantidad.requestFocus()
+        seleccionStock.text = "Todavía no se seleccionaron tallas."
+        guardarLinea.isEnabled = false
+        consultarSeleccion.isEnabled = true
     }
 
-    private fun enviarDetalle() {
+    private fun abrirSeleccionStock() {
         val codigo = articulo.text.toString().trim()
-        val qty = cantidad.text.toString().trim().toDoubleOrNull()
         val price = precio.text.toString().trim().replace(',', '.').toDoubleOrNull()
-        val disc = descuento.text.toString().trim().replace(',', '.').toDoubleOrNull() ?: 0.0
-        if (codigo.isBlank()) { articulo.error = "Ingresa el artículo"; articulo.requestFocus(); return }
-        if (qty == null || qty <= 0) { cantidad.error = "Cantidad debe ser mayor a cero"; cantidad.requestFocus(); return }
-        if (price == null || price < 0) { precio.error = "Ingresa un precio válido"; precio.requestFocus(); return }
-        if (disc < 0 || disc > qty * price) { descuento.error = "El descuento no puede superar el importe de la línea"; descuento.requestFocus(); return }
-        val subtotal = qty * price - disc
+        if (codigo.isBlank()) { articulo.error = "Selecciona primero un artículo del catálogo"; return }
+        if (price == null || price < 0) { precio.error = "Ingresa un precio válido"; return }
+        val intent = android.content.Intent(this, ConsultaStockActivity::class.java).apply {
+            putExtra("modoSeleccionPedido", true)
+            putExtra("ArticuloPedido", codigo)
+            putExtra("DescripcionPedido", descripcion.text.toString().trim())
+            putExtra("PrecioPedido", price)
+            putExtra("PedidoID", pedidoId)
+        }
+        guardarLinea.tag = null
+        guardarLinea.isEnabled = false
+        seleccionStock.text = "Consultando existencias…"
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, REQUEST_SELECCION_STOCK)
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_SELECCION_STOCK) return
+        if (resultCode != RESULT_OK) {
+            seleccionStock.text = "Selección cancelada. Puedes volver a consultar el stock."
+            guardarLinea.tag = null
+            guardarLinea.isEnabled = false
+            return
+        }
+        val seleccionJson = data?.getStringExtra("seleccionStock").orEmpty()
+        val seleccion = try { org.json.JSONArray(seleccionJson) } catch (_: Exception) { org.json.JSONArray() }
+        if (seleccion.length() == 0) {
+            seleccionStock.text = "No se seleccionaron tallas."
+            guardarLinea.isEnabled = false
+            return
+        }
+        val resumenTexto = (0 until seleccion.length()).mapNotNull { i ->
+            seleccion.optJSONObject(i)?.let { "${it.optString("Ciudad")} · ${it.optString("Talla")} × ${it.optInt("Cantidad", 1)}" }
+        }.joinToString("\n")
+        seleccionStock.text = "Selección recibida:\n$resumenTexto"
+        guardarLinea.isEnabled = true
+        guardarLinea.tag = seleccionJson
+    }
+
+    private fun guardarSeleccionStock() {
+        val selectedText = guardarLinea.tag as? String ?: return
+        val seleccion = try { org.json.JSONArray(selectedText) } catch (_: Exception) { return }
+        val price = precio.text.toString().trim().replace(',', '.').toDoubleOrNull()
+        val descuentoTotal = descuento.text.toString().trim().replace(',', '.').toDoubleOrNull() ?: 0.0
+        if (price == null || price < 0) { precio.error = "Ingresa un precio válido"; return }
+        val unidades = (0 until seleccion.length()).sumOf { seleccion.optJSONObject(it)?.optInt("Cantidad", 0) ?: 0 }
+        if (unidades <= 0) return
+        if (descuentoTotal < 0 || descuentoTotal > price * unidades) { descuento.error = "El descuento supera el importe seleccionado"; return }
+
+        val lineas = org.json.JSONArray()
+        var restante = Math.round(descuentoTotal * 100.0) / 100.0
+        var unidadIndex = 0
+        for (i in 0 until seleccion.length()) {
+            val grupo = seleccion.optJSONObject(i) ?: continue
+            val tallaGrupo = grupo.optString("Talla")
+            val ciudad = grupo.optString("Ciudad")
+            val cantidadGrupo = grupo.optInt("Cantidad", 0)
+            repeat(cantidadGrupo) { j ->
+                unidadIndex++
+                val descUnidad = if (unidadIndex == unidades) restante else Math.round((descuentoTotal / unidades) * 100.0) / 100.0
+                restante = Math.round((restante - descUnidad) * 100.0) / 100.0
+                lineas.put(org.json.JSONObject().apply { put("Talla", tallaGrupo); put("Ciudad", ciudad); put("Descuento", descUnidad) })
+            }
+        }
+
         val token = BuildConfig.COPIAR_AQ_PEDIDOS_TOKEN
         if (token.isBlank()) {
             AlertDialog.Builder(this).setTitle("Falta configurar el acceso")
                 .setMessage("La APK no contiene el token de Registro de Pedidos.")
-                .setPositiveButton("Aceptar", null).show()
-            return
+                .setPositiveButton("Aceptar", null).show(); return
         }
         guardarLinea.isEnabled = false
-        guardarLinea.text = "Guardando…"
+        guardarLinea.text = "Guardando selección…"
+        consultarSeleccion.isEnabled = false
         val datos = JSONObject().apply {
-            put("token", token)
-            put("accion", "agregarDetalle")
-            put("PedidoID", pedidoId)
-            put("Articulo", codigo)
-            put("Descripcion", descripcion.text.toString().trim())
-            put("Talla", talla.text.toString().trim())
-            put("Cantidad", qty)
-            put("Precio", price)
-            put("Descuento", disc)
+            put("token", token); put("accion", "agregarDetallesSeleccionStock")
+            put("PedidoID", pedidoId); put("Articulo", articulo.text.toString().trim())
+            put("Descripcion", descripcion.text.toString().trim()); put("Precio", price); put("Lineas", lineas)
         }
         thread {
-            var result: JSONObject? = null
-            var err: String? = null
+            var result: JSONObject? = null; var err: String? = null
             try {
                 val conn = (URL(API_URL).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    connectTimeout = 20000
-                    readTimeout = 30000
-                    doOutput = true
-                    instanceFollowRedirects = true
-                    setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                    setRequestProperty("Accept", "application/json")
+                    requestMethod = "POST"; connectTimeout = 20000; readTimeout = 30000; doOutput = true; instanceFollowRedirects = true
+                    setRequestProperty("Content-Type", "application/json; charset=utf-8"); setRequestProperty("Accept", "application/json")
                 }
                 conn.outputStream.use { it.write(datos.toString().toByteArray(Charsets.UTF_8)) }
-                val status = conn.responseCode
-                val stream = if (status in 200..299) conn.inputStream else conn.errorStream
-                val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-                conn.disconnect()
+                val status = conn.responseCode; val stream = if (status in 200..299) conn.inputStream else conn.errorStream
+                val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty(); conn.disconnect()
                 if (status !in 200..299) throw Exception("HTTP $status: $body")
-                result = JSONObject(body)
-                if (!result!!.optBoolean("ok")) throw Exception(result!!.optString("mensaje", "El servidor rechazó el artículo"))
+                result = JSONObject(body); if (!result!!.optBoolean("ok")) throw Exception(result!!.optString("mensaje", "Error guardando selección"))
             } catch (e: Exception) { err = e.message ?: "Error de conexión" }
             runOnUiThread {
-                guardarLinea.isEnabled = true
-                guardarLinea.text = "Guardar artículo"
+                guardarLinea.isEnabled = true; guardarLinea.text = "Agregar selección al pedido"; consultarSeleccion.isEnabled = true
                 if (err != null) {
-                    AlertDialog.Builder(this).setTitle("No se guardó el artículo")
-                        .setMessage(err).setPositiveButton("Aceptar", null).show()
+                    AlertDialog.Builder(this).setTitle("No se guardó la selección").setMessage(err).setPositiveButton("Aceptar", null).show()
                 } else {
-                    cantidadLineas++
-                    totalAcumulado = result?.optDouble("TotalPedido", totalAcumulado + subtotal) ?: (totalAcumulado + subtotal)
+                    val agregados = result?.optInt("CantidadRegistros", unidades) ?: unidades
+                    cantidadLineas += agregados
+                    totalAcumulado = result?.optDouble("TotalPedido", totalAcumulado) ?: totalAcumulado
                     resumen.text = "Artículos guardados en esta sesión: $cantidadLineas"
                     totalSesion.text = "Total del pedido: Bs ${formato(totalAcumulado)}"
-                    val acumulado = result?.optBoolean("Acumulado", false) == true
-                    val cantidadLinea = result?.optDouble("CantidadLinea", qty) ?: qty
-                    val mensaje = if (acumulado) {
-                        "Cantidad acumulada: ${formato(cantidadLinea)}. Total del pedido: Bs ${formato(totalAcumulado)}"
-                    } else {
-                        "Artículo agregado. Subtotal: Bs ${formato(subtotal)}"
-                    }
-                    Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show()
-                    articulo.text.clear(); descripcion.text.clear(); talla.text.clear(); cantidad.setText("1"); precio.text.clear(); descuento.setText("0")
+                    Toast.makeText(this, "$agregados unidad(es) agregadas al pedido", Toast.LENGTH_LONG).show()
+                    seleccionStock.text = "Selección guardada. Puedes consultar otro artículo."
+                    guardarLinea.tag = null; guardarLinea.isEnabled = false
+                    articulo.text.clear(); descripcion.text.clear(); precio.text.clear(); descuento.setText("0")
                     articulo.requestFocus()
                 }
             }

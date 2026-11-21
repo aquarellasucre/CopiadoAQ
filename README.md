@@ -138,3 +138,15 @@ La pantalla Registro de Pedido ahora permite, después de crear la cabecera, abr
 En esta fase, `Descuento` se interpreta como **monto total en Bs descontado de esa línea**, no porcentaje. `Subtotal = Cantidad × Precio - Descuento`. Cada línea se guarda inmediatamente en Google Sheets y Apps Script recalcula el total de la cabecera en `Pedidos_OH[Total]`.
 
 Antes de compilar esta versión, actualizar el código del Apps Script con el archivo `RegistroPedidos.gs` que acompaña el ZIP, sustituir `API_TOKEN` por el token secreto actual y publicar una nueva versión de la implementación web. Luego compilar la APK en GitHub Actions.
+
+
+## Fase 3 — Selección interactiva de stock desde pedido
+
+- La búsqueda del catálogo y la selección del artículo conservan su funcionamiento.
+- En `DetallePedidoActivity`, **Consultar stock y seleccionar** abre `ConsultaStockActivity` en modo pedido con el artículo precargado. La consulta se inicia automáticamente cuando el formulario está listo (si la sesión requiere iniciar sesión, después de autenticar).
+- El resumen de **Disponibilidad** mantiene su diseño actual: ciudades en filas y tallas en columnas, con la existencia debajo de cada talla. En modo pedido, tocar una cantidad disponible agrega una unidad; mantener presionado reduce la selección. No se puede seleccionar más que la existencia de esa celda.
+- **Agregar selección** devuelve las tallas y cantidades agrupadas por ciudad. La pantalla de detalle permite revisar la selección y guardarla.
+- Apps Script agrega una fila individual por unidad, con Cantidad=1, POD-ID independiente y el nuevo campo **Tipo de pedido** en columna J: `Pedido Local` para Sucre, y `Pedido - Nacional - [Ciudad]` para La Paz, Cochabamba, Santa Cruz o Tarija.
+- El descuento total ingresado se distribuye entre las unidades seleccionadas (con ajuste de centavos en la última unidad).
+
+**Para probar:** sustituye el Apps Script de prueba por `RegistroPedidos_Fase3_SeleccionStock_v1.4.gs`, mantén el token correcto y actualiza la implementación Web App existente a una nueva versión. Luego compila desde GitHub Actions. La compilación Android y la prueba en el teléfono aún están pendientes; este entorno no tiene Gradle/Android SDK.

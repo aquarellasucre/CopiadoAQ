@@ -73,6 +73,9 @@ class ConsultaStockActivity : Activity() {
     private var navegandoAConsultaTrasLogin = false
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var botonDescargarLiquidacion: Button
+    private var modoSeleccionPedido = false
+    private var consultaAutoPedidoIniciada = false
+    private var codigoPedidoAuto = ""
 
 override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -94,6 +97,8 @@ override fun onCreate(savedInstanceState: Bundle?) {
     }
 
     CookieManager.getInstance().setAcceptCookie(true)
+    modoSeleccionPedido = intent.getBooleanExtra("modoSeleccionPedido", false)
+    codigoPedidoAuto = intent.getStringExtra("ArticuloPedido").orEmpty()
 
     construirPantalla()
     abrirStock()
@@ -285,9 +290,10 @@ private fun construirPantalla() {
                         prepararFormularioConsultaTrasLogin()
                     }
                 } else if (url?.contains("stockForm.aspx", true) == true) {
-                    estado.text = "Introduce el artículo y pulsa Consultar."
+                    estado.text = if (modoSeleccionPedido) "Preparando consulta de stock para el pedido…" else "Introduce el artículo y pulsa Consultar."
                     loginDialogVisible = false
                     navegandoAConsultaTrasLogin = false
+                    iniciarConsultaPedidoAutomatica()
                 } else estado.text = "Página cargada."
             }
         }
@@ -624,6 +630,15 @@ private fun crearResumenSemana(): LinearLayout {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, peso)
         }
 
+    private fun iniciarConsultaPedidoAutomatica() {
+        if (!modoSeleccionPedido || consultaAutoPedidoIniciada || codigoPedidoAuto.isBlank()) return
+        if (!webView.url.orEmpty().contains("stockForm.aspx", true)) return
+        consultaAutoPedidoIniciada = true
+        articuloInput.setText(codigoPedidoAuto)
+        articuloInput.setSelection(articuloInput.text.length)
+        webView.postDelayed({ if (!isFinishing && !isDestroyed) buscarArticulo() }, 450)
+    }
+
     private fun abrirLogin() {
         webView.loadUrl(URL_LOGIN)
     }
@@ -648,6 +663,7 @@ private fun crearResumenSemana(): LinearLayout {
                     navegandoAConsultaTrasLogin = false
                     loginDialogVisible = false
                     estado.text = "Sesión iniciada. Ya puedes consultar el artículo."
+                    iniciarConsultaPedidoAutomatica()
                 }
                 "\"CLICK_CONSULTA\"" -> {
                     estado.text = "Sesión iniciada. Abriendo formulario de consulta…"
@@ -658,6 +674,7 @@ private fun crearResumenSemana(): LinearLayout {
                                 navegandoAConsultaTrasLogin = false
                                 loginDialogVisible = false
                                 estado.text = "Sesión iniciada. Ya puedes consultar el artículo."
+                                iniciarConsultaPedidoAutomatica()
                             } else {
                                 estado.text = "Sesión iniciada. Pulsa Consultar; la app intentará abrir el formulario automáticamente."
                             }
@@ -1337,6 +1354,8 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
         append("\n")
         }
 
+    val seleccionPedido = linkedMapOf<String, Int>()
+
     if (filasDisponibilidad.isEmpty()) {
 
         val mensaje = TextView(this).apply {
@@ -1411,6 +1430,10 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
             bottomMargin = dp(7)
         }
     )
+
+    if (modoSeleccionPedido) {
+        listaDisponibilidad.addView(TextView(this).apply { text = "Modo pedido: toca una cantidad para agregar una unidad; mantén presionado para quitar una.", textSize = 11f, setPadding(dp(2), dp(0), dp(2), dp(6)), setTextColor(android.graphics.Color.rgb(30, 90, 150)) })
+    }
 
     filasDisponibilidad.forEach { fila ->
 
@@ -1536,11 +1559,35 @@ linea.addView(
                     val cantidadTexto = TextView(this).apply {
                         text = existencia.toString()
                         textSize = 13f
-                        setTextColor(
-                            android.graphics.Color.rgb(22, 128, 68)
-                        )
+                        setTextColor(android.graphics.Color.rgb(22, 128, 68))
                         setTypeface(null, Typeface.BOLD)
                         gravity = Gravity.CENTER
+                        if (modoSeleccionPedido) {
+                            isClickable = true
+                            isFocusable = true
+                            val clave = "$codigoTienda|$ciudad|$numero"
+                            setOnClickListener {
+                                val actual = seleccionPedido[clave] ?: 0
+                                if (actual < existencia) {
+                                    seleccionPedido[clave] = actual + 1
+                                    text = "$existencia\n×${actual + 1}"
+                                    maxLines = 2
+                                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f)
+                                    setTextColor(android.graphics.Color.rgb(12, 91, 157))
+                                    background = GradientDrawable().apply { setColor(android.graphics.Color.rgb(220, 238, 255)); cornerRadius = dp(4).toFloat(); setStroke(dp(1), android.graphics.Color.rgb(40, 120, 205)) }
+                                } else Toast.makeText(this@ConsultaStockActivity, "No puedes seleccionar más que el stock disponible ($existencia)", Toast.LENGTH_SHORT).show()
+                            }
+                            setOnLongClickListener {
+                                val actual = seleccionPedido[clave] ?: 0
+                                if (actual > 0) {
+                                    if (actual == 1) seleccionPedido.remove(clave) else seleccionPedido[clave] = actual - 1
+                                    val restante = seleccionPedido[clave] ?: 0
+                                    text = if (restante > 0) "$existencia\n×$restante" else existencia.toString()
+                                    if (restante == 0) { setTextColor(android.graphics.Color.rgb(22, 128, 68)); background = null }
+                                }
+                                true
+                            }
+                        }
                     }
 
                     celda.addView(
@@ -1880,6 +1927,8 @@ linea.addView(
         LinearLayout.LayoutParams(0, dp(44), 1f)
     )
 
+    if (modoSeleccionPedido) botonGeneral.visibility = android.view.View.GONE
+
     // Primero se muestran los botones para cambiar entre las vistas.
     raizDialogo.addView(selector)
 
@@ -1968,7 +2017,7 @@ linea.addView(
     }
 
     val textoTitulo = TextView(this).apply {
-        text = "Resultado de stock"
+        text = if (modoSeleccionPedido) "Seleccionar pedido · Stock" else "Resultado de stock"
         textSize = 20f
         setTypeface(null, Typeface.BOLD)
         setTextColor(android.graphics.Color.BLACK)
@@ -2018,11 +2067,12 @@ linea.addView(
     val dialogo = AlertDialog.Builder(this)
         .setCustomTitle(tituloDialogo)
         .setView(raizDialogo)
-        .setPositiveButton("Copiar", null)
-        .setNegativeButton("Cerrar", null)
+        .setPositiveButton(if (modoSeleccionPedido) "Agregar selección" else "Copiar", null)
+        .setNegativeButton(if (modoSeleccionPedido) "Cancelar" else "Cerrar", null)
         .create()
 
     botonCerrarX.setOnClickListener {
+        if (modoSeleccionPedido) { setResult(RESULT_CANCELED); finish() }
         dialogo.dismiss()
     }
 
@@ -2033,33 +2083,42 @@ linea.addView(
             (resources.displayMetrics.heightPixels * 0.78).toInt()
         )
 
+        if (modoSeleccionPedido) {
+            dialogo.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+                setResult(RESULT_CANCELED)
+                dialogo.dismiss()
+                finish()
+            }
+        }
+
         dialogo.getButton(AlertDialog.BUTTON_POSITIVE)
             .setOnClickListener {
-
-                val contenidoCopiar = if (
-                    scrollDisponibilidad.visibility == android.view.View.VISIBLE
-                        ) {
-                    textoCopiarDisponibilidad
-                    } else {
-                        textoGeneral
+                if (modoSeleccionPedido) {
+                    val seleccionado = org.json.JSONArray()
+                    seleccionPedido.forEach { (clave, qty) ->
+                        if (qty > 0) {
+                            val partes = clave.split("|", limit = 3)
+                            if (partes.size == 3) seleccionado.put(org.json.JSONObject().apply {
+                                put("CodigoCiudad", partes[0])
+                                put("Ciudad", partes[1])
+                                put("Talla", partes[2])
+                                put("Cantidad", qty)
+                            })
+                        }
                     }
-
-                val clipboard =
-                    getSystemService(CLIPBOARD_SERVICE)
-                        as android.content.ClipboardManager
-
-                clipboard.setPrimaryClip(
-                    android.content.ClipData.newPlainText(
-                        "Stock Aquarella",
-                        contenidoCopiar
-                    )
-                )
-
-                Toast.makeText(
-                    this,
-                    "Resultado copiado",
-                    Toast.LENGTH_SHORT
-                ).show()
+                    if (seleccionado.length() == 0) {
+                        Toast.makeText(this, "Selecciona al menos una existencia", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+                    setResult(RESULT_OK, android.content.Intent().putExtra("seleccionStock", seleccionado.toString()))
+                    dialogo.dismiss()
+                    finish()
+                } else {
+                    val contenidoCopiar = if (scrollDisponibilidad.visibility == android.view.View.VISIBLE) textoCopiarDisponibilidad else textoGeneral
+                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Stock Aquarella", contenidoCopiar))
+                    Toast.makeText(this, "Resultado copiado", Toast.LENGTH_SHORT).show()
+                }
             }
     }
 
