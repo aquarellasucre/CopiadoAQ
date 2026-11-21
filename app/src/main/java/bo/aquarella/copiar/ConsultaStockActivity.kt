@@ -10,9 +10,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.graphics.Typeface
 import android.os.Bundle
-import android.os.Environment
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -27,12 +25,6 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import android.content.ContentValues
-import android.os.Build
-import android.provider.MediaStore
-import android.util.Base64
-import java.io.File
-import java.io.FileOutputStream
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import java.text.SimpleDateFormat
@@ -54,10 +46,6 @@ class ConsultaStockActivity : Activity() {
     }
 
     private lateinit var webView: WebView
-    private lateinit var pedidoWebView: WebView
-    private lateinit var contenedorWeb: FrameLayout
-    private var moduloActivo = "STOCK"
-    private var urlPendientePedido = "https://aq.coreva.com.bo/aquarella/Aquarella/Logistica/panelOrdersCustomer.aspx"
     private lateinit var estado: TextView
     private lateinit var progreso: ProgressBar
     private lateinit var articuloInput: EditText
@@ -70,9 +58,7 @@ class ConsultaStockActivity : Activity() {
     private var articuloConsultado = ""
     private var loginDialogVisible = false
     private var loginAttemptInProgress = false
-    private var navegandoAConsultaTrasLogin = false
     private lateinit var drawerLayout: DrawerLayout
-    private lateinit var botonDescargarLiquidacion: Button
 
 override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -157,75 +143,13 @@ private inner class StockJavascriptBridge {
     }
 }
 
-private inner class LiquidacionJavascriptBridge {
-    @android.webkit.JavascriptInterface
-    fun pdfDescargado(nombre: String, base64: String) {
-        runOnUiThread {
-            try {
-                val bytes = Base64.decode(base64, Base64.DEFAULT)
-                guardarPdfLiquidacion(nombre, bytes)
-            } catch (e: Exception) {
-                Toast.makeText(this@ConsultaStockActivity, "No se pudo guardar el PDF: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    @android.webkit.JavascriptInterface
-    fun errorDescarga(mensaje: String) {
-        runOnUiThread { Toast.makeText(this@ConsultaStockActivity, mensaje, Toast.LENGTH_LONG).show() }
-    }
-}
-
-private fun guardarPdfLiquidacion(nombreOriginal: String, bytes: ByteArray) {
-    val nombre = nombreOriginal.replace(Regex("[^A-Za-z0-9._-]"), "_").let { if (it.endsWith(".pdf", true)) it else "$it.pdf" }
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        val values = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, nombre)
-            put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
-            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Copiar AQ")
-            put(MediaStore.Downloads.IS_PENDING, 1)
-        }
-        val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            ?: throw IllegalStateException("No se pudo crear el archivo en Descargas")
-        contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
-            ?: throw IllegalStateException("No se pudo escribir el PDF")
-        values.clear(); values.put(MediaStore.Downloads.IS_PENDING, 0)
-        contentResolver.update(uri, values, null, null)
-        Toast.makeText(this, "Liquidación guardada en Descargas/Copiar AQ: $nombre", Toast.LENGTH_LONG).show()
-    } else {
-        val dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
-        val file = File(dir, nombre)
-        FileOutputStream(file).use { it.write(bytes) }
-        Toast.makeText(this, "PDF guardado: ${file.absolutePath}", Toast.LENGTH_LONG).show()
-    }
-}
-
-private fun descargarLiquidacionDesdeWebView() {
-    if (moduloActivo != "PEDIDO") {
-        Toast.makeText(this, "Abre primero Crear Pedido / navegación Aquarella", Toast.LENGTH_SHORT).show()
-        return
-    }
-    val js = """(function(){
-      var docs=[],seen=new Set();
-      function scan(d){if(!d||seen.has(d))return;seen.add(d);var u='';try{u=d.location.href}catch(e){}
-        if(/reportLiquidation\.aspx/i.test(u)&&d.querySelector('[id*="crvLiquidation"]')){
-          var q=new URL(u).searchParams;var n=q.get('NoLiq')||q.get('Noliq')||q.get('noLiq');if(n)docs.push({d:d,n:n});}
-        Array.from(d.querySelectorAll('iframe,frame')).forEach(function(f){try{scan(f.contentDocument)}catch(e){}});}
-      try{scan(document);if(!docs.length){AndroidLiquidation.errorDescarga('No se encontró el reporte. Abre primero una liquidación con el icono de imprimir.');return;}
-        var x=docs.find(function(o){return o.d.forms.length>0})||docs[0],d=x.d,n=x.n,f=d.forms[0];if(!f){AndroidLiquidation.errorDescarga('No se encontró el formulario de exportación del reporte.');return;}
-        var v={};Array.from(f.elements).forEach(function(e){if(e.name&&!e.disabled&&(e.type!=='checkbox'&&e.type!=='radio'||e.checked))v[e.name]=e.value;});
-        v.__EVENTTARGET='crvLiquidation';v.__EVENTARGUMENT='{"text":"PDF","range":"false","tb":"crexport"}';
-        var body=new URLSearchParams(v);fetch(f.action||d.location.href,{method:'POST',credentials:'include',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()})
-        .then(function(r){if(!r.ok)throw Error('Error HTTP '+r.status);return r.blob();})
-        .then(function(b){if(b.type==='text/html'||b.size<100)throw Error('Aquarella no devolvió el PDF. Comprueba que el reporte esté abierto.');
-          var reader=new FileReader();reader.onload=function(){var data=String(reader.result).split(',')[1];AndroidLiquidation.pdfDescargado(n+'.pdf',data);};reader.onerror=function(){throw Error('No se pudo leer el archivo PDF');};reader.readAsDataURL(b);})
-        .catch(function(e){AndroidLiquidation.errorDescarga('No se pudo descargar el PDF: '+e.message);});
-      }catch(e){AndroidLiquidation.errorDescarga('Error al exportar: '+e.message);}})();"""
-    pedidoWebView.evaluateJavascript(js, null)
-}
-
 private fun construirPantalla() {
     val contenido = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+    val barra = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8), dp(2), dp(8), dp(2)) }
+    val botonMenu = Button(this).apply { text = "☰"; textSize = 22f; isAllCaps = false; setOnClickListener { drawerLayout.openDrawer(Gravity.LEFT) } }
+    barra.addView(botonMenu, LinearLayout.LayoutParams(dp(48), dp(48)))
+    barra.addView(TextView(this).apply { text = "Consulta Stock"; textSize = 17f; setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER_VERTICAL }, LinearLayout.LayoutParams(0, dp(48), 1f))
+    contenido.addView(barra)
     contenido.addView(crearResumenSemana())
 
     val filaBusqueda = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(6), dp(2), dp(6), dp(2)) }
@@ -265,92 +189,14 @@ private fun construirPantalla() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean { if (url.isNullOrBlank()) return true; val uri = android.net.Uri.parse(url); return uri.scheme !in listOf("http", "https") || uri.host != HOST_PERMITIDO }
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) { progreso.visibility = ProgressBar.VISIBLE; estado.text = "Cargando Aquarella…" }
             override fun onPageFinished(view: WebView?, url: String?) {
-                progreso.visibility = ProgressBar.GONE
-                CookieManager.getInstance().flush()
-                if (url?.contains("LoginForm.aspx", true) == true) {
-                    estado.text = "Sesión cerrada. Inicia sesión para continuar."
-                    loginAttemptInProgress = false
-                    navegandoAConsultaTrasLogin = false
-                    if (!loginDialogVisible) mostrarFormularioLogin(false)
-                } else if (loginAttemptInProgress) {
-                    // Login validado (ya no estamos en LoginForm): llevar directamente al formulario de stock.
-                    if (!url.orEmpty().contains("stockForm.aspx", true)) {
-                        if (!navegandoAConsultaTrasLogin) {
-                            navegandoAConsultaTrasLogin = true
-                            estado.text = "Sesión iniciada. Abriendo Consulta Stock…"
-                            webView.loadUrl(URL_STOCK)
-                        }
-                    } else {
-                        estado.text = "Preparando consulta de stock…"
-                        prepararFormularioConsultaTrasLogin()
-                    }
-                } else if (url?.contains("stockForm.aspx", true) == true) {
-                    estado.text = "Introduce el artículo y pulsa Consultar."
-                    loginDialogVisible = false
-                    navegandoAConsultaTrasLogin = false
-                } else estado.text = "Página cargada."
+                progreso.visibility = ProgressBar.GONE; CookieManager.getInstance().flush()
+                if (url?.contains("LoginForm.aspx", true) == true) { estado.text = "Sesión cerrada. Inicia sesión para continuar."; if (loginAttemptInProgress) loginAttemptInProgress = false; if (!loginDialogVisible) mostrarFormularioLogin(false) }
+                else if (url?.contains("stockForm.aspx", true) == true) { estado.text = "Introduce el artículo y pulsa Consultar."; loginDialogVisible = false; loginAttemptInProgress = false }
+                else estado.text = "Página cargada."
             }
         }
     }
-    // Los dos WebView permanecen creados: cambiar de módulo no destruye su navegación.
-    pedidoWebView = WebView(this).apply {
-        settings.javaScriptEnabled = true
-        settings.domStorageEnabled = true
-        settings.databaseEnabled = true
-        settings.loadsImagesAutomatically = true
-        settings.javaScriptCanOpenWindowsAutomatically = false
-        settings.setSupportMultipleWindows(false)
-        settings.useWideViewPort = true
-        settings.loadWithOverviewMode = true
-        settings.builtInZoomControls = true
-        settings.displayZoomControls = false
-        CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-        webChromeClient = WebChromeClient()
-        webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val uri = request?.url ?: return true
-                return uri.scheme !in listOf("http", "https") || uri.host != HOST_PERMITIDO
-            }
-            @Deprecated("Deprecated in Java")
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                if (url.isNullOrBlank()) return true
-                val uri = android.net.Uri.parse(url)
-                return uri.scheme !in listOf("http", "https") || uri.host != HOST_PERMITIDO
-            }
-            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                if (moduloActivo == "PEDIDO") estado.text = "Cargando Aquarella…"
-            }
-            override fun onPageFinished(view: WebView?, url: String?) {
-                CookieManager.getInstance().flush()
-                if (url.orEmpty().contains("LoginForm.aspx", true)) {
-                    if (moduloActivo == "PEDIDO") {
-                        estado.text = "Sesión cerrada. Inicia sesión para continuar."
-                        loginAttemptInProgress = false
-                        mostrarFormularioLogin(false)
-                    }
-                } else if (loginAttemptInProgress && moduloActivo == "PEDIDO") {
-                    loginAttemptInProgress = false
-                    estado.text = "Sesión iniciada. Módulo de pedidos disponible."
-                } else if (moduloActivo == "PEDIDO") {
-                    estado.text = "Aquarella · Crear Pedido / navegación libre"
-                }
-            }
-        }
-    }
-    pedidoWebView.addJavascriptInterface(LiquidacionJavascriptBridge(), "AndroidLiquidation")
-    contenedorWeb = FrameLayout(this)
-    contenedorWeb.addView(webView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-    contenedorWeb.addView(pedidoWebView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-    pedidoWebView.visibility = View.GONE
-    botonDescargarLiquidacion = crearBoton("↓ Descargar Liquidación PDF", 0f) { descargarLiquidacionDesdeWebView() }.apply {
-        textSize = 13f
-        visibility = View.GONE
-        elevation = dp(8).toFloat()
-    }
-    contenedorWeb.addView(botonDescargarLiquidacion, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44), Gravity.TOP or Gravity.RIGHT).apply {
-        setMargins(dp(10), dp(10), dp(10), dp(10))
-    })
-    contenido.addView(contenedorWeb, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+    contenido.addView(webView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
     drawerLayout = DrawerLayout(this).apply {
         setScrimColor(0x99000000.toInt())
         addView(contenido, DrawerLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -370,36 +216,10 @@ private fun crearMenuLateral(): View {
         fila.addView(TextView(this).apply { text = subtitulo; textSize = 12f; setTextColor(android.graphics.Color.GRAY); setPadding(0, dp(3), 0, 0) })
         menu.addView(fila, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
-    item("Consulta Stock", "Volver a la consulta de artículos y tallas") { mostrarModuloStock() }
-    item("Crear Pedido", "Abrir pedidos en Aquarella") { mostrarModuloPedido(true) }
-    item("Navegar en Aquarella", "Continuar en el segundo navegador") { mostrarModuloPedido(false) }
+    item("Inicio de Aquarella", "Abrir inicio / login oficial") { consultaLista = false; consultaEnCurso = false; botonLeerData.isEnabled = false; abrirLogin() }
+    item("Consulta Stock", "Abrir formulario de consulta") { consultaLista = false; consultaEnCurso = false; botonLeerData.isEnabled = false; abrirStock() }
     item("Credenciales", "Guardar o actualizar acceso") { mostrarFormularioLogin(true) }
     return menu
-}
-
-private fun mostrarModuloStock() {
-    moduloActivo = "STOCK"
-    pedidoWebView.visibility = View.GONE
-    botonDescargarLiquidacion.visibility = View.GONE
-    webView.visibility = View.VISIBLE
-    consultaLista = false
-    consultaEnCurso = false
-    botonLeerData.isEnabled = false
-    if (!webView.url.orEmpty().contains("stockForm.aspx", true)) abrirStock()
-    estado.text = "Consulta Stock"
-}
-
-private fun mostrarModuloPedido(abrirInicio: Boolean) {
-    moduloActivo = "PEDIDO"
-    webView.visibility = View.GONE
-    pedidoWebView.visibility = View.VISIBLE
-    botonDescargarLiquidacion.visibility = View.VISIBLE
-    if (abrirInicio || pedidoWebView.url.isNullOrBlank() || pedidoWebView.url == "about:blank") {
-        urlPendientePedido = "https://aq.coreva.com.bo/aquarella/Aquarella/Logistica/panelOrdersCustomer.aspx"
-        pedidoWebView.loadUrl(urlPendientePedido)
-    } else {
-        estado.text = "Aquarella · Navegación libre"
-    }
 }
 
 private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -439,9 +259,8 @@ private fun mostrarFormularioLogin(soloGuardar: Boolean) {
 
 private fun enviarCredencialesAWeb(usuario: String, contrasena: String) {
     loginAttemptInProgress = true; estado.text = "Ingresando a Aquarella…"
-    val webLogin = if (moduloActivo == "PEDIDO") pedidoWebView else webView
     val js = """(function(){const u=${org.json.JSONObject.quote(usuario)},p=${org.json.JSONObject.quote(contrasena)};const a=Array.from(document.querySelectorAll('input'));const pass=a.find(x=>x.type==='password');const user=a.find(x=>x.type!=='password'&&/user|usuario|login|email|cuenta/i.test((x.name||'')+' '+(x.id||'')+' '+(x.placeholder||'')))||a.find(x=>x.type==='text'||x.type==='email');if(!user||!pass)return 'NO_FIELDS';function setv(e,v){e.focus();e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));}setv(user,u);setv(pass,p);const f=pass.form||user.form;const b=(f&&f.querySelector('button[type=submit],input[type=submit]'))||Array.from(document.querySelectorAll('button,input[type=button]')).find(x=>/entrar|ingresar|login|aceptar/i.test(x.innerText||x.value||''));if(b){b.click();return 'CLICKED';}if(f){f.requestSubmit?f.requestSubmit():f.submit();return 'SUBMITTED';}return 'NO_FORM';})();"""
-    webLogin.evaluateJavascript(js) { result -> if (result?.contains("NO_FIELDS") == true || result?.contains("NO_FORM") == true) { loginAttemptInProgress = false; runOnUiThread { estado.text = "No se reconoció el formulario de login."; Toast.makeText(this, "No se reconocieron los campos; termina el acceso en la página oficial.", Toast.LENGTH_LONG).show() } } }
+    webView.evaluateJavascript(js) { result -> if (result?.contains("NO_FIELDS") == true || result?.contains("NO_FORM") == true) { loginAttemptInProgress = false; runOnUiThread { estado.text = "No se reconoció el formulario de login."; Toast.makeText(this, "No se reconocieron los campos; termina el acceso en la página oficial.", Toast.LENGTH_LONG).show() } } }
 }
 
 private fun crearResumenSemana(): LinearLayout {
@@ -632,55 +451,7 @@ private fun crearResumenSemana(): LinearLayout {
         webView.loadUrl(URL_STOCK)
     }
 
-    private fun prepararFormularioConsultaTrasLogin() {
-    val js = """(function(){
-        if(document.getElementById('ContentPlaceHolder1_TxtItem') && document.getElementById('ContentPlaceHolder1_btConsult')) return 'FORM_OK';
-        var elementos=Array.from(document.querySelectorAll('a,button,input[type=button],input[type=submit]'));
-        var consulta=elementos.find(function(e){return /^\s*consulta\s*$/i.test((e.innerText||e.textContent||e.value||'').trim());});
-        if(consulta){consulta.click();return 'CLICK_CONSULTA';}
-        return 'FORM_MISSING';
-    })();"""
-    webView.evaluateJavascript(js) { result ->
-        runOnUiThread {
-            when (result) {
-                "\"FORM_OK\"" -> {
-                    loginAttemptInProgress = false
-                    navegandoAConsultaTrasLogin = false
-                    loginDialogVisible = false
-                    estado.text = "Sesión iniciada. Ya puedes consultar el artículo."
-                }
-                "\"CLICK_CONSULTA\"" -> {
-                    estado.text = "Sesión iniciada. Abriendo formulario de consulta…"
-                    webView.postDelayed({
-                        webView.evaluateJavascript("!!document.getElementById('ContentPlaceHolder1_TxtItem') && !!document.getElementById('ContentPlaceHolder1_btConsult')") { comprobacion ->
-                            if (comprobacion == "true") {
-                                loginAttemptInProgress = false
-                                navegandoAConsultaTrasLogin = false
-                                loginDialogVisible = false
-                                estado.text = "Sesión iniciada. Ya puedes consultar el artículo."
-                            } else {
-                                estado.text = "Sesión iniciada. Pulsa Consultar; la app intentará abrir el formulario automáticamente."
-                            }
-                        }
-                    }, 700)
-                }
-                else -> {
-                    // Reintentar una navegación normal al formulario si la página no expuso el acceso Consulta.
-                    if (!navegandoAConsultaTrasLogin) {
-                        navegandoAConsultaTrasLogin = true
-                        webView.loadUrl(URL_STOCK)
-                    } else {
-                        loginAttemptInProgress = false
-                        navegandoAConsultaTrasLogin = false
-                        estado.text = "Sesión iniciada. Si no aparece el formulario, abre Consulta desde el menú lateral."
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun buscarArticulo() {
+    private fun buscarArticulo() {
     val articulo = articuloInput.text.toString().trim()
 
     if (webView.url?.contains("LoginForm.aspx", true) == true) {
@@ -2135,8 +1906,11 @@ private fun mostrarMensajeStock(texto: String) {
 
 
     override fun onBackPressed() {
-        val actual = if (moduloActivo == "PEDIDO") pedidoWebView else webView
-        if (actual.canGoBack()) actual.goBack() else super.onBackPressed()
+        if (::webView.isInitialized && webView.canGoBack()) {
+            webView.goBack()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     override fun onDestroy() {
@@ -2144,11 +1918,6 @@ private fun mostrarMensajeStock(texto: String) {
             webView.stopLoading()
             webView.loadUrl("about:blank")
             webView.destroy()
-        }
-        if (::pedidoWebView.isInitialized) {
-            pedidoWebView.stopLoading()
-            pedidoWebView.loadUrl("about:blank")
-            pedidoWebView.destroy()
         }
         super.onDestroy()
     }
