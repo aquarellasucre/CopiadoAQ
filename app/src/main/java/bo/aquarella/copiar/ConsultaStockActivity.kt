@@ -1309,10 +1309,8 @@ val anchoPantallaDp = (
         resources.displayMetrics.density
 ).toInt()
 
-val anchoCeldaTalla = (
-    (anchoPantallaDp - 164) /
-        maxOf(1, indicesTallasVisibles.size)
-).coerceIn(20, 28)
+// Celdas amplias para selección táctil; la tabla podrá desplazarse horizontalmente.
+val anchoCeldaTalla = 68
 
     val articulo = registros.firstOrNull()?.let {
         valor(it, indiceArticulo)
@@ -1408,12 +1406,12 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
         }
 
         text = texto
-        textSize = 10f
+        textSize = 15f
         setTextColor(android.graphics.Color.rgb(42, 48, 54))
         gravity = Gravity.CENTER
         setSingleLine(true)
         ellipsize = android.text.TextUtils.TruncateAt.END
-        setPadding(dp(2), dp(9), dp(2), dp(9))
+        setPadding(dp(6), dp(12), dp(6), dp(12))
 
         background = GradientDrawable().apply {
             setColor(android.graphics.Color.rgb(240, 242, 244))
@@ -1434,8 +1432,8 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
     if (modoSeleccionPedido) {
         listaDisponibilidad.addView(TextView(this).apply {
             text = "Modo pedido: toca una cantidad para agregar una unidad; mantén presionado para quitar una."
-            textSize = 11f
-            setPadding(dp(2), dp(0), dp(2), dp(6))
+            textSize = 14f
+            setPadding(dp(4), dp(6), dp(4), dp(12))
             setTextColor(android.graphics.Color.rgb(30, 90, 150))
         })
     }
@@ -1464,10 +1462,10 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
                 gravity = Gravity.CENTER_VERTICAL
 
                 setPadding(
+                    dp(6),
                     dp(5),
-                    dp(2),
-                    dp(5),
-                    dp(2)
+                    dp(6),
+                    dp(5)
                 )
 
                 background = GradientDrawable().apply {
@@ -1507,7 +1505,7 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
 val informacion = TextView(this).apply {
 
     text = identificacionTexto
-    textSize = 9f
+    textSize = 16f
 
     setTextColor(
         if (esSucre)
@@ -1524,9 +1522,8 @@ val informacion = TextView(this).apply {
 linea.addView(
     informacion,
     LinearLayout.LayoutParams(
-        0,
-        dp(44),
-        1f
+        dp(130),
+        dp(82)
     )
 )
 
@@ -1554,7 +1551,7 @@ linea.addView(
 
                     val talla = TextView(this).apply {
                         text = numero
-                        textSize = 10f
+                        textSize = 18f
                         setTextColor(
                             android.graphics.Color.rgb(85, 93, 101)
                         )
@@ -1563,7 +1560,7 @@ linea.addView(
 
                     val cantidadTexto = TextView(this).apply {
                         text = existencia.toString()
-                        textSize = 13f
+                        textSize = 23f
                         setTextColor(android.graphics.Color.rgb(22, 128, 68))
                         setTypeface(null, Typeface.BOLD)
                         gravity = Gravity.CENTER
@@ -1577,7 +1574,7 @@ linea.addView(
                                     seleccionPedido[clave] = actual + 1
                                     text = "$existencia\n×${actual + 1}"
                                     maxLines = 2
-                                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f)
+                                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 19f)
                                     setTextColor(android.graphics.Color.rgb(12, 91, 157))
                                     background = GradientDrawable().apply { setColor(android.graphics.Color.rgb(220, 238, 255)); cornerRadius = dp(4).toFloat(); setStroke(dp(1), android.graphics.Color.rgb(40, 120, 205)) }
                                 } else Toast.makeText(this@ConsultaStockActivity, "No puedes seleccionar más que el stock disponible ($existencia)", Toast.LENGTH_SHORT).show()
@@ -1588,7 +1585,12 @@ linea.addView(
                                     if (actual == 1) seleccionPedido.remove(clave) else seleccionPedido[clave] = actual - 1
                                     val restante = seleccionPedido[clave] ?: 0
                                     text = if (restante > 0) "$existencia\n×$restante" else existencia.toString()
-                                    if (restante == 0) { setTextColor(android.graphics.Color.rgb(22, 128, 68)); background = null }
+                                    if (restante == 0) {
+                                        maxLines = 1
+                                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 23f)
+                                        setTextColor(android.graphics.Color.rgb(22, 128, 68))
+                                        background = null
+                                    }
                                 }
                                 true
                             }
@@ -1599,7 +1601,7 @@ linea.addView(
                         talla,
                         LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
-                            dp(15)
+                            dp(32)
                         )
                     )
 
@@ -1607,7 +1609,7 @@ linea.addView(
                         cantidadTexto,
                         LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
-                            dp(23)
+                            dp(48)
                         )
                     )
 
@@ -1618,7 +1620,7 @@ linea.addView(
                     celda,
                     LinearLayout.LayoutParams(
                         dp(anchoCeldaTalla),
-                        dp(40)
+                        dp(80)
                     )
                 )
             }
@@ -1628,9 +1630,9 @@ linea.addView(
                 
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(48)
+                    dp(90)
                 ).apply {
-                    bottomMargin = dp(3)
+                    bottomMargin = dp(6)
                 }
             )
 
@@ -1650,13 +1652,25 @@ linea.addView(
         }
     }
 
+    val scrollHorizontalDisponibilidad =
+    android.widget.HorizontalScrollView(this).apply {
+        isFillViewport = false
+        isHorizontalScrollBarEnabled = true
+        addView(
+            listaDisponibilidad,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
+    }
+
     val scrollDisponibilidad =
     android.widget.ScrollView(this).apply {
         isFillViewport = true
         isHorizontalScrollBarEnabled = false
-
         addView(
-            listaDisponibilidad,
+            scrollHorizontalDisponibilidad,
             ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
