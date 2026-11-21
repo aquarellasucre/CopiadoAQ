@@ -1432,7 +1432,12 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
     )
 
     if (modoSeleccionPedido) {
-        listaDisponibilidad.addView(TextView(this).apply { text = "Modo pedido: toca una cantidad para agregar una unidad; mantén presionado para quitar una.", textSize = 11f, setPadding(dp(2), dp(0), dp(2), dp(6)), setTextColor(android.graphics.Color.rgb(30, 90, 150)) })
+        listaDisponibilidad.addView(TextView(this).apply {
+            text = "Modo pedido: toca una cantidad para agregar una unidad; mantén presionado para quitar una."
+            textSize = 11f
+            setPadding(dp(2), dp(0), dp(2), dp(6))
+            setTextColor(android.graphics.Color.rgb(30, 90, 150))
+        })
     }
 
     filasDisponibilidad.forEach { fila ->
