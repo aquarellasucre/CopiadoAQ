@@ -289,7 +289,7 @@ class DetallePedidoActivity : Activity() {
         val price = precio.text.toString().trim().replace(',', '.').toDoubleOrNull()
         if (codigo.isBlank()) { articulo.error = "Selecciona primero un artículo del catálogo"; return }
         if (price == null || price < 0) { precio.error = "Ingresa un precio válido"; return }
-        val intent = android.content.Intent(this, ConsultaStockActivity::class.java).apply {
+        val intent = android.content.Intent(this, SeleccionStockPedidoActivity::class.java).apply {
             putExtra("modoSeleccionPedido", true)
             putExtra("ArticuloPedido", codigo)
             putExtra("DescripcionPedido", descripcion.text.toString().trim())

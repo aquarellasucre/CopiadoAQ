@@ -73,9 +73,6 @@ class ConsultaStockActivity : Activity() {
     private var navegandoAConsultaTrasLogin = false
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var botonDescargarLiquidacion: Button
-    private var modoSeleccionPedido = false
-    private var consultaAutoPedidoIniciada = false
-    private var codigoPedidoAuto = ""
 
 override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -97,8 +94,6 @@ override fun onCreate(savedInstanceState: Bundle?) {
     }
 
     CookieManager.getInstance().setAcceptCookie(true)
-    modoSeleccionPedido = intent.getBooleanExtra("modoSeleccionPedido", false)
-    codigoPedidoAuto = intent.getStringExtra("ArticuloPedido").orEmpty()
 
     construirPantalla()
     abrirStock()
@@ -290,10 +285,9 @@ private fun construirPantalla() {
                         prepararFormularioConsultaTrasLogin()
                     }
                 } else if (url?.contains("stockForm.aspx", true) == true) {
-                    estado.text = if (modoSeleccionPedido) "Preparando consulta de stock para el pedido…" else "Introduce el artículo y pulsa Consultar."
+                    estado.text = "Introduce el artículo y pulsa Consultar."
                     loginDialogVisible = false
                     navegandoAConsultaTrasLogin = false
-                    iniciarConsultaPedidoAutomatica()
                 } else estado.text = "Página cargada."
             }
         }
@@ -357,16 +351,6 @@ private fun construirPantalla() {
         setMargins(dp(10), dp(10), dp(10), dp(10))
     })
     contenido.addView(contenedorWeb, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-
-    if (modoSeleccionPedido) {
-        filaBusqueda.visibility = View.GONE
-        acciones.visibility = View.GONE
-        webView.visibility = View.INVISIBLE
-        estado.text = "Consultando stock…"
-        progreso.visibility = ProgressBar.VISIBLE
-        // Aquarella sigue cargándose en el WebView oculto; solo se expone el resultado final.
-    }
-
     drawerLayout = DrawerLayout(this).apply {
         setScrimColor(0x99000000.toInt())
         addView(contenido, DrawerLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -640,15 +624,6 @@ private fun crearResumenSemana(): LinearLayout {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, peso)
         }
 
-    private fun iniciarConsultaPedidoAutomatica() {
-        if (!modoSeleccionPedido || consultaAutoPedidoIniciada || codigoPedidoAuto.isBlank()) return
-        if (!webView.url.orEmpty().contains("stockForm.aspx", true)) return
-        consultaAutoPedidoIniciada = true
-        articuloInput.setText(codigoPedidoAuto)
-        articuloInput.setSelection(articuloInput.text.length)
-        webView.postDelayed({ if (!isFinishing && !isDestroyed) buscarArticulo() }, 450)
-    }
-
     private fun abrirLogin() {
         webView.loadUrl(URL_LOGIN)
     }
@@ -673,7 +648,6 @@ private fun crearResumenSemana(): LinearLayout {
                     navegandoAConsultaTrasLogin = false
                     loginDialogVisible = false
                     estado.text = "Sesión iniciada. Ya puedes consultar el artículo."
-                    iniciarConsultaPedidoAutomatica()
                 }
                 "\"CLICK_CONSULTA\"" -> {
                     estado.text = "Sesión iniciada. Abriendo formulario de consulta…"
@@ -684,7 +658,6 @@ private fun crearResumenSemana(): LinearLayout {
                                 navegandoAConsultaTrasLogin = false
                                 loginDialogVisible = false
                                 estado.text = "Sesión iniciada. Ya puedes consultar el artículo."
-                                iniciarConsultaPedidoAutomatica()
                             } else {
                                 estado.text = "Sesión iniciada. Pulsa Consultar; la app intentará abrir el formulario automáticamente."
                             }
@@ -1319,8 +1292,10 @@ val anchoPantallaDp = (
         resources.displayMetrics.density
 ).toInt()
 
-// Celdas amplias para selección táctil; la tabla podrá desplazarse horizontalmente.
-val anchoCeldaTalla = 52
+val anchoCeldaTalla = (
+    (anchoPantallaDp - 164) /
+        maxOf(1, indicesTallasVisibles.size)
+).coerceIn(20, 28)
 
     val articulo = registros.firstOrNull()?.let {
         valor(it, indiceArticulo)
@@ -1361,8 +1336,6 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
         )
         append("\n")
         }
-
-    val seleccionPedido = linkedMapOf<String, Int>()
 
     if (filasDisponibilidad.isEmpty()) {
 
@@ -1416,12 +1389,12 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
         }
 
         text = texto
-        textSize = 12f
+        textSize = 10f
         setTextColor(android.graphics.Color.rgb(42, 48, 54))
         gravity = Gravity.CENTER
         setSingleLine(true)
         ellipsize = android.text.TextUtils.TruncateAt.END
-        setPadding(dp(4), dp(6), dp(4), dp(6))
+        setPadding(dp(2), dp(9), dp(2), dp(9))
 
         background = GradientDrawable().apply {
             setColor(android.graphics.Color.rgb(240, 242, 244))
@@ -1438,15 +1411,6 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
             bottomMargin = dp(7)
         }
     )
-
-    if (modoSeleccionPedido) {
-        listaDisponibilidad.addView(TextView(this).apply {
-            text = "Modo pedido: toca una cantidad para agregar una unidad; mantén presionado para quitar una."
-            textSize = 11f
-            setPadding(dp(3), dp(3), dp(3), dp(5))
-            setTextColor(android.graphics.Color.rgb(30, 90, 150))
-        })
-    }
 
     filasDisponibilidad.forEach { fila ->
 
@@ -1472,10 +1436,10 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
                 gravity = Gravity.CENTER_VERTICAL
 
                 setPadding(
-                    dp(6),
                     dp(5),
-                    dp(6),
-                    dp(5)
+                    dp(2),
+                    dp(5),
+                    dp(2)
                 )
 
                 background = GradientDrawable().apply {
@@ -1515,7 +1479,7 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
 val informacion = TextView(this).apply {
 
     text = identificacionTexto
-    textSize = 16f
+    textSize = 9f
 
     setTextColor(
         if (esSucre)
@@ -1532,8 +1496,9 @@ val informacion = TextView(this).apply {
 linea.addView(
     informacion,
     LinearLayout.LayoutParams(
-        dp(102),
-        dp(60)
+        0,
+        dp(44),
+        1f
     )
 )
 
@@ -1561,7 +1526,7 @@ linea.addView(
 
                     val talla = TextView(this).apply {
                         text = numero
-                        textSize = 15f
+                        textSize = 10f
                         setTextColor(
                             android.graphics.Color.rgb(85, 93, 101)
                         )
@@ -1570,48 +1535,19 @@ linea.addView(
 
                     val cantidadTexto = TextView(this).apply {
                         text = existencia.toString()
-                        textSize = 18f
-                        setTextColor(android.graphics.Color.rgb(22, 128, 68))
+                        textSize = 13f
+                        setTextColor(
+                            android.graphics.Color.rgb(22, 128, 68)
+                        )
                         setTypeface(null, Typeface.BOLD)
                         gravity = Gravity.CENTER
-                        if (modoSeleccionPedido) {
-                            isClickable = true
-                            isFocusable = true
-                            val clave = "$codigoTienda|$ciudad|$numero"
-                            setOnClickListener {
-                                val actual = seleccionPedido[clave] ?: 0
-                                if (actual < existencia) {
-                                    seleccionPedido[clave] = actual + 1
-                                    text = "$existencia\n×${actual + 1}"
-                                    maxLines = 2
-                                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
-                                    setTextColor(android.graphics.Color.rgb(12, 91, 157))
-                                    background = GradientDrawable().apply { setColor(android.graphics.Color.rgb(220, 238, 255)); cornerRadius = dp(4).toFloat(); setStroke(dp(1), android.graphics.Color.rgb(40, 120, 205)) }
-                                } else Toast.makeText(this@ConsultaStockActivity, "No puedes seleccionar más que el stock disponible ($existencia)", Toast.LENGTH_SHORT).show()
-                            }
-                            setOnLongClickListener {
-                                val actual = seleccionPedido[clave] ?: 0
-                                if (actual > 0) {
-                                    if (actual == 1) seleccionPedido.remove(clave) else seleccionPedido[clave] = actual - 1
-                                    val restante = seleccionPedido[clave] ?: 0
-                                    text = if (restante > 0) "$existencia\n×$restante" else existencia.toString()
-                                    if (restante == 0) {
-                                        maxLines = 1
-                                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 18f)
-                                        setTextColor(android.graphics.Color.rgb(22, 128, 68))
-                                        background = null
-                                    }
-                                }
-                                true
-                            }
-                        }
                     }
 
                     celda.addView(
                         talla,
                         LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
-                            dp(25)
+                            dp(15)
                         )
                     )
 
@@ -1619,7 +1555,7 @@ linea.addView(
                         cantidadTexto,
                         LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
-                            dp(34)
+                            dp(23)
                         )
                     )
 
@@ -1630,7 +1566,7 @@ linea.addView(
                     celda,
                     LinearLayout.LayoutParams(
                         dp(anchoCeldaTalla),
-                        dp(60)
+                        dp(40)
                     )
                 )
             }
@@ -1640,9 +1576,9 @@ linea.addView(
                 
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(66)
+                    dp(48)
                 ).apply {
-                    bottomMargin = dp(4)
+                    bottomMargin = dp(3)
                 }
             )
 
@@ -1662,25 +1598,13 @@ linea.addView(
         }
     }
 
-    val scrollHorizontalDisponibilidad =
-    android.widget.HorizontalScrollView(this).apply {
-        isFillViewport = false
-        isHorizontalScrollBarEnabled = true
-        addView(
-            listaDisponibilidad,
-            ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        )
-    }
-
     val scrollDisponibilidad =
     android.widget.ScrollView(this).apply {
         isFillViewport = true
         isHorizontalScrollBarEnabled = false
+
         addView(
-            scrollHorizontalDisponibilidad,
+            listaDisponibilidad,
             ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1956,8 +1880,6 @@ linea.addView(
         LinearLayout.LayoutParams(0, dp(44), 1f)
     )
 
-    if (modoSeleccionPedido) botonGeneral.visibility = android.view.View.GONE
-
     // Primero se muestran los botones para cambiar entre las vistas.
     raizDialogo.addView(selector)
 
@@ -2046,7 +1968,7 @@ linea.addView(
     }
 
     val textoTitulo = TextView(this).apply {
-        text = if (modoSeleccionPedido) "Seleccionar pedido · Stock" else "Resultado de stock"
+        text = "Resultado de stock"
         textSize = 20f
         setTypeface(null, Typeface.BOLD)
         setTextColor(android.graphics.Color.BLACK)
@@ -2096,12 +2018,11 @@ linea.addView(
     val dialogo = AlertDialog.Builder(this)
         .setCustomTitle(tituloDialogo)
         .setView(raizDialogo)
-        .setPositiveButton(if (modoSeleccionPedido) "Agregar selección" else "Copiar", null)
-        .setNegativeButton(if (modoSeleccionPedido) "Cancelar" else "Cerrar", null)
+        .setPositiveButton("Copiar", null)
+        .setNegativeButton("Cerrar", null)
         .create()
 
     botonCerrarX.setOnClickListener {
-        if (modoSeleccionPedido) { setResult(RESULT_CANCELED); finish() }
         dialogo.dismiss()
     }
 
@@ -2109,45 +2030,36 @@ linea.addView(
 
         dialogo.window?.setLayout(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            (resources.displayMetrics.heightPixels * 0.72).toInt()
+            (resources.displayMetrics.heightPixels * 0.78).toInt()
         )
-
-        if (modoSeleccionPedido) {
-            dialogo.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
-                setResult(RESULT_CANCELED)
-                dialogo.dismiss()
-                finish()
-            }
-        }
 
         dialogo.getButton(AlertDialog.BUTTON_POSITIVE)
             .setOnClickListener {
-                if (modoSeleccionPedido) {
-                    val seleccionado = org.json.JSONArray()
-                    seleccionPedido.forEach { (clave, qty) ->
-                        if (qty > 0) {
-                            val partes = clave.split("|", limit = 3)
-                            if (partes.size == 3) seleccionado.put(org.json.JSONObject().apply {
-                                put("CodigoCiudad", partes[0])
-                                put("Ciudad", partes[1])
-                                put("Talla", partes[2])
-                                put("Cantidad", qty)
-                            })
-                        }
+
+                val contenidoCopiar = if (
+                    scrollDisponibilidad.visibility == android.view.View.VISIBLE
+                        ) {
+                    textoCopiarDisponibilidad
+                    } else {
+                        textoGeneral
                     }
-                    if (seleccionado.length() == 0) {
-                        Toast.makeText(this, "Selecciona al menos una existencia", Toast.LENGTH_SHORT).show()
-                        return@setOnClickListener
-                    }
-                    setResult(RESULT_OK, android.content.Intent().putExtra("seleccionStock", seleccionado.toString()))
-                    dialogo.dismiss()
-                    finish()
-                } else {
-                    val contenidoCopiar = if (scrollDisponibilidad.visibility == android.view.View.VISIBLE) textoCopiarDisponibilidad else textoGeneral
-                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Stock Aquarella", contenidoCopiar))
-                    Toast.makeText(this, "Resultado copiado", Toast.LENGTH_SHORT).show()
-                }
+
+                val clipboard =
+                    getSystemService(CLIPBOARD_SERVICE)
+                        as android.content.ClipboardManager
+
+                clipboard.setPrimaryClip(
+                    android.content.ClipData.newPlainText(
+                        "Stock Aquarella",
+                        contenidoCopiar
+                    )
+                )
+
+                Toast.makeText(
+                    this,
+                    "Resultado copiado",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
     }
 
