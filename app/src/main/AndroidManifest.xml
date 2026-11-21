@@ -42,10 +42,12 @@
             
         <activity
             android:name=".RegistroPedidoActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".DetallePedidoActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ConsultaStockActivity"
             android:exported="false" />

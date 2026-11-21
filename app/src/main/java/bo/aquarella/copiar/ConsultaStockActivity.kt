@@ -357,6 +357,16 @@ private fun construirPantalla() {
         setMargins(dp(10), dp(10), dp(10), dp(10))
     })
     contenido.addView(contenedorWeb, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+
+    if (modoSeleccionPedido) {
+        filaBusqueda.visibility = View.GONE
+        acciones.visibility = View.GONE
+        webView.visibility = View.INVISIBLE
+        estado.text = "Consultando stock…"
+        progreso.visibility = ProgressBar.VISIBLE
+        // Aquarella sigue cargándose en el WebView oculto; solo se expone el resultado final.
+    }
+
     drawerLayout = DrawerLayout(this).apply {
         setScrimColor(0x99000000.toInt())
         addView(contenido, DrawerLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -1310,7 +1320,7 @@ val anchoPantallaDp = (
 ).toInt()
 
 // Celdas amplias para selección táctil; la tabla podrá desplazarse horizontalmente.
-val anchoCeldaTalla = 68
+val anchoCeldaTalla = 52
 
     val articulo = registros.firstOrNull()?.let {
         valor(it, indiceArticulo)
@@ -1406,12 +1416,12 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
         }
 
         text = texto
-        textSize = 15f
+        textSize = 12f
         setTextColor(android.graphics.Color.rgb(42, 48, 54))
         gravity = Gravity.CENTER
         setSingleLine(true)
         ellipsize = android.text.TextUtils.TruncateAt.END
-        setPadding(dp(6), dp(12), dp(6), dp(12))
+        setPadding(dp(4), dp(6), dp(4), dp(6))
 
         background = GradientDrawable().apply {
             setColor(android.graphics.Color.rgb(240, 242, 244))
@@ -1432,8 +1442,8 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
     if (modoSeleccionPedido) {
         listaDisponibilidad.addView(TextView(this).apply {
             text = "Modo pedido: toca una cantidad para agregar una unidad; mantén presionado para quitar una."
-            textSize = 14f
-            setPadding(dp(4), dp(6), dp(4), dp(12))
+            textSize = 11f
+            setPadding(dp(3), dp(3), dp(3), dp(5))
             setTextColor(android.graphics.Color.rgb(30, 90, 150))
         })
     }
@@ -1522,8 +1532,8 @@ val informacion = TextView(this).apply {
 linea.addView(
     informacion,
     LinearLayout.LayoutParams(
-        dp(130),
-        dp(82)
+        dp(102),
+        dp(60)
     )
 )
 
@@ -1551,7 +1561,7 @@ linea.addView(
 
                     val talla = TextView(this).apply {
                         text = numero
-                        textSize = 18f
+                        textSize = 15f
                         setTextColor(
                             android.graphics.Color.rgb(85, 93, 101)
                         )
@@ -1560,7 +1570,7 @@ linea.addView(
 
                     val cantidadTexto = TextView(this).apply {
                         text = existencia.toString()
-                        textSize = 23f
+                        textSize = 18f
                         setTextColor(android.graphics.Color.rgb(22, 128, 68))
                         setTypeface(null, Typeface.BOLD)
                         gravity = Gravity.CENTER
@@ -1574,7 +1584,7 @@ linea.addView(
                                     seleccionPedido[clave] = actual + 1
                                     text = "$existencia\n×${actual + 1}"
                                     maxLines = 2
-                                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 19f)
+                                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
                                     setTextColor(android.graphics.Color.rgb(12, 91, 157))
                                     background = GradientDrawable().apply { setColor(android.graphics.Color.rgb(220, 238, 255)); cornerRadius = dp(4).toFloat(); setStroke(dp(1), android.graphics.Color.rgb(40, 120, 205)) }
                                 } else Toast.makeText(this@ConsultaStockActivity, "No puedes seleccionar más que el stock disponible ($existencia)", Toast.LENGTH_SHORT).show()
@@ -1587,7 +1597,7 @@ linea.addView(
                                     text = if (restante > 0) "$existencia\n×$restante" else existencia.toString()
                                     if (restante == 0) {
                                         maxLines = 1
-                                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 23f)
+                                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 18f)
                                         setTextColor(android.graphics.Color.rgb(22, 128, 68))
                                         background = null
                                     }
@@ -1601,7 +1611,7 @@ linea.addView(
                         talla,
                         LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
-                            dp(32)
+                            dp(25)
                         )
                     )
 
@@ -1609,7 +1619,7 @@ linea.addView(
                         cantidadTexto,
                         LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
-                            dp(48)
+                            dp(34)
                         )
                     )
 
@@ -1620,7 +1630,7 @@ linea.addView(
                     celda,
                     LinearLayout.LayoutParams(
                         dp(anchoCeldaTalla),
-                        dp(80)
+                        dp(60)
                     )
                 )
             }
@@ -1630,9 +1640,9 @@ linea.addView(
                 
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(90)
+                    dp(66)
                 ).apply {
-                    bottomMargin = dp(6)
+                    bottomMargin = dp(4)
                 }
             )
 
@@ -2099,7 +2109,7 @@ linea.addView(
 
         dialogo.window?.setLayout(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            (resources.displayMetrics.heightPixels * 0.78).toInt()
+            (resources.displayMetrics.heightPixels * 0.72).toInt()
         )
 
         if (modoSeleccionPedido) {

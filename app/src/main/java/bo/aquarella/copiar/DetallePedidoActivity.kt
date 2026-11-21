@@ -50,6 +50,7 @@ class DetallePedidoActivity : Activity() {
             finish()
             return
         }
+        window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         construirPantalla()
     }
 
@@ -141,9 +142,27 @@ class DetallePedidoActivity : Activity() {
         }
         scrollContenido.addView(finalizar, parametros(8))
 
-        val scroll = ScrollView(this).apply { addView(scrollContenido) }
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+            addView(scrollContenido)
+        }
         contenedor.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         setContentView(contenedor)
+
+        // Cuando el teclado está abierto, el formulario se reduce y sigue siendo deslizable.
+        articulo.setOnFocusChangeListener { _, focused ->
+            if (focused) scroll.post { scroll.smoothScrollTo(0, articulo.top) }
+        }
+        descripcion.setOnFocusChangeListener { _, focused ->
+            if (focused) scroll.post { scroll.smoothScrollTo(0, descripcion.top) }
+        }
+        precio.setOnFocusChangeListener { _, focused ->
+            if (focused) scroll.post { scroll.smoothScrollTo(0, precio.top) }
+        }
+        descuento.setOnFocusChangeListener { _, focused ->
+            if (focused) scroll.post { scroll.smoothScrollTo(0, descuento.top) }
+        }
     }
 
     private fun campo(hintTexto: String, numeric: Boolean = false, decimal: Boolean = false): EditText = EditText(this).apply {
