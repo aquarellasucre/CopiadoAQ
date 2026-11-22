@@ -64,7 +64,7 @@ class RegistroPedidoActivity : Activity() {
             textSize = 16f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setTextColor(0xFF243654.toInt())
-            setPadding(0, dp(4), 0, dp(8))
+            setPadding(0, dp(2), 0, dp(5))
         }
         contenido.addView(etiquetaTipo, parametrosCampo())
         grupoTipoVenta = LinearLayout(this).apply {
@@ -76,11 +76,11 @@ class RegistroPedidoActivity : Activity() {
             TextView(this).apply {
                 text = nombre
                 gravity = Gravity.CENTER
-                textSize = 14f
+                textSize = 13f
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 isClickable = true
                 isFocusable = true
-                setPadding(dp(6), dp(14), dp(6), dp(14))
+                setPadding(dp(4), dp(8), dp(4), dp(8))
                 setOnClickListener {
                     tipoVentaSeleccionado = nombre
                     actualizarBotonesTipoVenta()
@@ -88,8 +88,8 @@ class RegistroPedidoActivity : Activity() {
             }
         }
         botonesTipoVenta.forEachIndexed { index, boton ->
-            grupoTipoVenta.addView(boton, LinearLayout.LayoutParams(0, dp(70), 1f).apply {
-                if (index > 0) leftMargin = dp(5)
+            grupoTipoVenta.addView(boton, LinearLayout.LayoutParams(0, dp(56), 1f).apply {
+                if (index > 0) leftMargin = dp(4)
             })
         }
         contenido.addView(grupoTipoVenta, parametrosCampo())

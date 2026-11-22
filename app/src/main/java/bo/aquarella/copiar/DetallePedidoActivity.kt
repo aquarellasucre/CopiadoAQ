@@ -91,8 +91,8 @@ class DetallePedidoActivity : Activity() {
         }
         articulo.apply {
             setSingleLine(true)
-            textSize = 16f
-            setPadding(dp(14), dp(10), dp(8), dp(10))
+            textSize = 15f
+            setPadding(dp(10), dp(7), dp(6), dp(7))
             background = null
             hint = "Código Artículo · Escribe o pega el código"
         }
@@ -100,22 +100,22 @@ class DetallePedidoActivity : Activity() {
         val pegar = TextView(this).apply {
             text = "▤\nPegar"
             gravity = Gravity.CENTER
-            textSize = 14f
+            textSize = 12f
             setTextColor(0xFF1768C4.toInt())
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            setPadding(dp(6), dp(5), dp(6), dp(5))
             background = fondoRedondeado(0xFFE8F2FF.toInt(), 0x00000000, 0, 18)
-            minWidth = dp(68)
+            minWidth = dp(58)
             setOnClickListener { pegarPortapapeles() }
         }
-        marcoCodigo.addView(pegar, LinearLayout.LayoutParams(dp(78), ViewGroup.LayoutParams.MATCH_PARENT))
+        marcoCodigo.addView(pegar, LinearLayout.LayoutParams(dp(64), ViewGroup.LayoutParams.MATCH_PARENT))
         val buscar = Button(this).apply {
             text = "Buscar en catálogo"
             isAllCaps = false
             setOnClickListener { buscarCatalogo() }
         }
         botonBuscarCatalogo = buscar
-        scrollContenido.addView(marcoCodigo, parametros(4).apply { height = dp(62) })
+        scrollContenido.addView(marcoCodigo, parametros(4).apply { height = dp(52) })
         scrollContenido.addView(buscar, parametros(10))
         descripcion = campo("Descripción (opcional)")
         precio = campo("Precio unitario (Bs)", decimal = true)
