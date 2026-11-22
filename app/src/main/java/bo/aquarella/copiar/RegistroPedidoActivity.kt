@@ -9,8 +9,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.Spinner
-import android.widget.ArrayAdapter
+import android.graphics.drawable.GradientDrawable
 import android.widget.TextView
 import android.widget.Toast
 import org.json.JSONObject
@@ -25,7 +24,9 @@ class RegistroPedidoActivity : Activity() {
     }
 
     private lateinit var cliente: EditText
-    private lateinit var tipoVenta: Spinner
+    private var tipoVentaSeleccionado = "Cotización"
+    private lateinit var grupoTipoVenta: LinearLayout
+    private lateinit var botonesTipoVenta: List<TextView>
     private lateinit var descripcion: EditText
     private lateinit var usuario: EditText
     private lateinit var guardar: Button
@@ -58,10 +59,41 @@ class RegistroPedidoActivity : Activity() {
         cliente = campo("Cliente (obligatorio)")
         contenido.addView(cliente, parametrosCampo())
 
-        tipoVenta = Spinner(this)
-        val opciones = listOf("Seleccionar tipo de venta", "Contado", "Crédito", "Cotización")
-        tipoVenta.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, opciones)
-        contenido.addView(tipoVenta, parametrosCampo())
+        val etiquetaTipo = TextView(this).apply {
+            text = "Seleccionar tipo de venta"
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(0xFF243654.toInt())
+            setPadding(0, dp(4), 0, dp(8))
+        }
+        contenido.addView(etiquetaTipo, parametrosCampo())
+        grupoTipoVenta = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val nombres = listOf("Contado", "Crédito", "Cotización")
+        botonesTipoVenta = nombres.map { nombre ->
+            TextView(this).apply {
+                text = nombre
+                gravity = Gravity.CENTER
+                textSize = 14f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                isClickable = true
+                isFocusable = true
+                setPadding(dp(6), dp(14), dp(6), dp(14))
+                setOnClickListener {
+                    tipoVentaSeleccionado = nombre
+                    actualizarBotonesTipoVenta()
+                }
+            }
+        }
+        botonesTipoVenta.forEachIndexed { index, boton ->
+            grupoTipoVenta.addView(boton, LinearLayout.LayoutParams(0, dp(70), 1f).apply {
+                if (index > 0) leftMargin = dp(5)
+            })
+        }
+        contenido.addView(grupoTipoVenta, parametrosCampo())
+        actualizarBotonesTipoVenta()
 
         descripcion = campo("Descripción / observaciones (opcional)", multilinea = true)
         contenido.addView(descripcion, parametrosCampo())
@@ -109,11 +141,7 @@ class RegistroPedidoActivity : Activity() {
             cliente.requestFocus()
             return
         }
-        val tipo = if (tipoVenta.selectedItemPosition == 0) "" else tipoVenta.selectedItem.toString()
-        if (tipo.isEmpty()) {
-            Toast.makeText(this, "Selecciona el tipo de venta", Toast.LENGTH_SHORT).show()
-            return
-        }
+        val tipo = tipoVentaSeleccionado
 
         val token = BuildConfig.COPIAR_AQ_PEDIDOS_TOKEN
         if (token.isBlank()) {
@@ -198,9 +226,23 @@ class RegistroPedidoActivity : Activity() {
         }
     }
 
+    private fun actualizarBotonesTipoVenta() {
+        botonesTipoVenta.forEach { boton ->
+            val seleccionado = boton.text.toString() == tipoVentaSeleccionado
+            boton.setTextColor(if (seleccionado) 0xFF1768C4.toInt() else 0xFF46536A.toInt())
+            boton.background = GradientDrawable().apply {
+                cornerRadius = dp(16).toFloat()
+                setColor(if (seleccionado) 0xFFE4F0FF.toInt() else 0xFFF8F9FB.toInt())
+                setStroke(dp(if (seleccionado) 2 else 1), if (seleccionado) 0xFF2D83E8.toInt() else 0xFFD0D4DE.toInt())
+            }
+            boton.contentDescription = if (seleccionado) "${boton.text}, seleccionado" else boton.text.toString()
+        }
+    }
+
     private fun limpiarFormulario() {
         cliente.text.clear()
-        tipoVenta.setSelection(0)
+        tipoVentaSeleccionado = "Cotización"
+        actualizarBotonesTipoVenta()
         descripcion.text.clear()
         usuario.text.clear()
         cliente.requestFocus()

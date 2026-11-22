@@ -170,3 +170,8 @@ Antes de compilar esta versión, actualizar el código del Apps Script con el ar
 - El descuento se reparte por unidad en centavos, con el residuo asignado a la última unidad, siguiendo el mismo criterio que el guardado.
 - El usuario puede **Volver a revisar** o **Confirmar y guardar**. No se envía nada al Apps Script hasta confirmar.
 - La pantalla de selección de stock y el resumen compacto de tallas no se modifican en esta mejora.
+
+## Cambios de interfaz – v6 (21/11/2026)
+- Campo de código de artículo con marco redondeado y botón integrado **Pegar**, que inserta el texto del portapapeles en el campo al tocarlo.
+- Selector de tipo de venta en tres botones redondeados: Contado, Crédito y Cotización.
+- Cotización queda seleccionada por defecto; solo una opción puede estar activa y la selección se restablece a Cotización al limpiar el formulario.

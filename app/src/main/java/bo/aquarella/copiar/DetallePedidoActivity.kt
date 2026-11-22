@@ -12,6 +12,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.content.ClipboardManager
+import android.graphics.drawable.GradientDrawable
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -30,6 +32,7 @@ class DetallePedidoActivity : Activity() {
     private lateinit var descripcion: EditText
     private lateinit var seleccionStock: TextView
     private lateinit var consultarSeleccion: Button
+    private lateinit var botonBuscarCatalogo: Button
     private lateinit var precio: EditText
     private lateinit var descuento: EditText
     private lateinit var guardarLinea: Button
@@ -78,13 +81,41 @@ class DetallePedidoActivity : Activity() {
             setPadding(0, 0, 0, dp(14))
         }, parametros(0))
 
-        articulo = campo("Código / artículo (escribe o pega)")
+        // Campo de código integrado con botón de pegar desde el portapapeles.
+        articulo = campo("Código Artículo · Escribe o pega el código")
+        val marcoCodigo = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = fondoRedondeado(0xFFF8FBFF.toInt(), 0xFF2D83E8.toInt(), 2, 22)
+            clipToOutline = true
+        }
+        articulo.apply {
+            setSingleLine(true)
+            textSize = 16f
+            setPadding(dp(14), dp(10), dp(8), dp(10))
+            background = null
+            hint = "Código Artículo · Escribe o pega el código"
+        }
+        marcoCodigo.addView(articulo, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val pegar = TextView(this).apply {
+            text = "▤\nPegar"
+            gravity = Gravity.CENTER
+            textSize = 14f
+            setTextColor(0xFF1768C4.toInt())
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            background = fondoRedondeado(0xFFE8F2FF.toInt(), 0x00000000, 0, 18)
+            minWidth = dp(68)
+            setOnClickListener { pegarPortapapeles() }
+        }
+        marcoCodigo.addView(pegar, LinearLayout.LayoutParams(dp(78), ViewGroup.LayoutParams.MATCH_PARENT))
         val buscar = Button(this).apply {
             text = "Buscar en catálogo"
             isAllCaps = false
             setOnClickListener { buscarCatalogo() }
         }
-        scrollContenido.addView(articulo, parametros(4))
+        botonBuscarCatalogo = buscar
+        scrollContenido.addView(marcoCodigo, parametros(4).apply { height = dp(62) })
         scrollContenido.addView(buscar, parametros(10))
         descripcion = campo("Descripción (opcional)")
         precio = campo("Precio unitario (Bs)", decimal = true)
@@ -177,6 +208,24 @@ class DetallePedidoActivity : Activity() {
     ).apply { bottomMargin = dp(margen) }
 
 
+    private fun pegarPortapapeles() {
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val texto = if (clipboard.hasPrimaryClip()) clipboard.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty() else ""
+        if (texto.isBlank()) {
+            Toast.makeText(this, "El portapapeles está vacío", Toast.LENGTH_SHORT).show()
+            return
+        }
+        articulo.setText(texto)
+        articulo.setSelection(articulo.text.length)
+    }
+
+    private fun fondoRedondeado(color: Int, borde: Int, grosor: Int, radio: Int): GradientDrawable =
+        GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = dp(radio).toFloat()
+            if (grosor > 0) setStroke(dp(grosor), borde)
+        }
+
     private fun buscarCatalogo() {
         val consulta = articulo.text.toString().trim()
         if (consulta.isBlank()) {
@@ -192,9 +241,8 @@ class DetallePedidoActivity : Activity() {
             return
         }
 
-        val botonBuscar = (articulo.parent as? ViewGroup)?.getChildAt(4) as? Button
-        botonBuscar?.isEnabled = false
-        botonBuscar?.text = "Buscando…"
+        botonBuscarCatalogo.isEnabled = false
+        botonBuscarCatalogo.text = "Buscando…"
         val datos = JSONObject().apply {
             put("token", token)
             put("accion", "buscarCatalogo")
@@ -226,8 +274,8 @@ class DetallePedidoActivity : Activity() {
                 error = e.message ?: "Error de conexión"
             }
             runOnUiThread {
-                botonBuscar?.isEnabled = true
-                botonBuscar?.text = "Buscar en catálogo"
+                botonBuscarCatalogo.isEnabled = true
+                botonBuscarCatalogo.text = "Buscar en catálogo"
                 if (error != null) {
                     AlertDialog.Builder(this).setTitle("No se pudo buscar")
                         .setMessage(error).setPositiveButton("Aceptar", null).show()
