@@ -1371,6 +1371,43 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
 
     val seleccionPedido = linkedMapOf<String, Int>()
 
+    // Resumen compacto de selección: queda fuera del área desplazable y no
+    // cambia el ancho ni el tamaño de las celdas de tallas.
+    val resumenSeleccion = TextView(this).apply {
+        text = "Seleccionadas: 0 unidades"
+        textSize = 11f
+        setTextColor(android.graphics.Color.rgb(35, 65, 95))
+        gravity = Gravity.CENTER_VERTICAL
+        maxLines = 2
+        ellipsize = android.text.TextUtils.TruncateAt.END
+        setPadding(dp(8), dp(3), dp(8), dp(3))
+        background = GradientDrawable().apply {
+            setColor(android.graphics.Color.rgb(239, 245, 250))
+            cornerRadius = dp(5).toFloat()
+            setStroke(dp(1), android.graphics.Color.rgb(205, 220, 235))
+        }
+        visibility = if (modoSeleccionPedido) android.view.View.VISIBLE else android.view.View.GONE
+    }
+
+    fun actualizarResumenSeleccion() {
+        val totalUnidades = seleccionPedido.values.sum()
+        val resumenTallas = seleccionPedido.entries
+            .mapNotNull { entry ->
+                val partes = entry.key.split("|", limit = 3)
+                if (partes.size == 3 && entry.value > 0) partes[2] to entry.value else null
+            }
+            .groupBy({ it.first }, { it.second })
+            .map { (talla, cantidades) -> "$talla×${cantidades.sum()}" }
+            .joinToString(" · ")
+
+        resumenSeleccion.text = if (totalUnidades == 0) {
+            "Seleccionadas: 0 unidades"
+        } else {
+            "Seleccionadas: $totalUnidades unidades" +
+                if (resumenTallas.isNotBlank()) "  |  $resumenTallas" else ""
+        }
+    }
+
     if (filasDisponibilidad.isEmpty()) {
 
         val mensaje = TextView(this).apply {
@@ -1579,6 +1616,7 @@ linea.addView(
                                     setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (anchoCeldaTalla < 36) 13f else 15f)
                                     setTextColor(android.graphics.Color.rgb(12, 91, 157))
                                     background = GradientDrawable().apply { setColor(android.graphics.Color.rgb(220, 238, 255)); cornerRadius = dp(4).toFloat(); setStroke(dp(1), android.graphics.Color.rgb(40, 120, 205)) }
+                                    actualizarResumenSeleccion()
                                 } else Toast.makeText(this@ConsultaStockActivity, "No puedes seleccionar más que el stock disponible ($existencia)", Toast.LENGTH_SHORT).show()
                             }
                             setOnLongClickListener {
@@ -1593,6 +1631,7 @@ linea.addView(
                                         setTextColor(android.graphics.Color.rgb(22, 128, 68))
                                         background = null
                                     }
+                                    actualizarResumenSeleccion()
                                 }
                                 true
                             }
@@ -1983,6 +2022,21 @@ linea.addView(
             1f
         )
     )
+
+    // Franja fija inferior de resumen. Se muestra solo al agregar tallas y
+    // ocupa altura mínima, dejando intacto el diseño horizontal de la tabla.
+    if (modoSeleccionPedido) {
+        raizDialogo.addView(
+            resumenSeleccion,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(38)
+            ).apply {
+                topMargin = dp(3)
+                bottomMargin = dp(2)
+            }
+        )
+    }
 
     fun actualizarSelector(disponibilidad: Boolean) {
 
