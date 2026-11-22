@@ -1317,13 +1317,15 @@ private fun mostrarConsultaStock(
 val densidadPantalla = resources.displayMetrics.density
 val anchoPantallaDp = (resources.displayMetrics.widthPixels / densidadPantalla).toInt()
 
-// La tabla se adapta al ancho del diálogo. La columna de tienda conserva
-// espacio para identificar la ciudad y las tallas reparten el ancho restante.
+// Prioridad: mostrar TODAS las tallas y la identificación completa de tienda.
+// Las columnas de tallas usan peso para repartir el ancho real del contenedor;
+// así la última talla no queda fuera de pantalla por sumar anchos fijos.
 val anchoDialogoDp = (anchoPantallaDp * 0.96f).toInt()
-val anchoColumnaTienda = if (indicesTallasVisibles.size >= 8) 82 else 94
-val espacioTallasDp = (anchoDialogoDp - 10 - 8 - anchoColumnaTienda).coerceAtLeast(1)
-val anchoCeldaTalla = (espacioTallasDp / indicesTallasVisibles.size.coerceAtLeast(1))
-    .coerceAtMost(58).coerceAtLeast(22)
+val anchoColumnaTienda = 72
+// Estimación para ajustar tipografía; el ancho real de cada talla se distribuye
+// por weight=1 dentro de la fila, no mediante anchos rígidos.
+val anchoCeldaTalla = ((anchoDialogoDp - anchoColumnaTienda - 16) /
+    indicesTallasVisibles.size.coerceAtLeast(1)).coerceAtLeast(1)
 val altoFilaTienda = 58
 val altoFilaTabla = altoFilaTienda + 3
 
@@ -1495,22 +1497,12 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
 
         val identificacionTexto =
     android.text.SpannableStringBuilder().apply {
-
         append(codigoTienda)
-        append(" ")
-
+        append("\n")
         val inicioCiudad = length
         append(ciudad)
-
         setSpan(
             android.text.style.StyleSpan(Typeface.BOLD),
-            inicioCiudad,
-            length,
-            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-
-        setSpan(
-            android.text.style.RelativeSizeSpan(1.2f),
             inicioCiudad,
             length,
             android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -1518,20 +1510,15 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
     }
 
 val informacion = TextView(this).apply {
-
     text = identificacionTexto
-    textSize = 16f
-
+    textSize = 12f
     setTextColor(
-        if (esSucre)
-            android.graphics.Color.rgb(23, 107, 54)
-        else
-            android.graphics.Color.rgb(42, 48, 54)
+        if (esSucre) android.graphics.Color.rgb(23, 107, 54)
+        else android.graphics.Color.rgb(42, 48, 54)
     )
-
-    setSingleLine(true)
-    ellipsize = android.text.TextUtils.TruncateAt.END
-    gravity = Gravity.CENTER_VERTICAL
+    setSingleLine(false)
+    maxLines = 2
+    gravity = Gravity.CENTER
 }
 
 linea.addView(
@@ -1634,8 +1621,9 @@ linea.addView(
                 linea.addView(
                     celda,
                     LinearLayout.LayoutParams(
-                        dp(anchoCeldaTalla),
-                        dp(altoFilaTienda)
+                        0,
+                        dp(altoFilaTienda),
+                        1f
                     )
                 )
             }
