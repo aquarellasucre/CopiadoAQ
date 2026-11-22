@@ -49,9 +49,6 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".SeleccionStockPedidoActivity"
-            android:exported="false" />
-        <activity
             android:name=".ConsultaStockActivity"
             android:exported="false" />
         <activity
