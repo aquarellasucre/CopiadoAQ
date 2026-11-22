@@ -161,3 +161,12 @@ Antes de compilar esta versión, actualizar el código del Apps Script con el ar
 - La imagen del artículo tiene altura adaptable y se reduce/oculta si el espacio vertical debe priorizar la tabla.
 - Los tamaños de texto de talla y stock se ajustan en columnas estrechas; se mantiene la selección por toque y quitar por pulsación larga.
 - La compilación y prueba física de esta revisión están pendientes.
+
+### Revisión previa a guardar selección (Fase 3 — v4)
+
+- Al pulsar **Agregar selección al pedido**, ahora se muestra una revisión antes de enviar los datos a Google Sheets.
+- La revisión agrupa por ciudad y talla e incluye cantidad, precio unitario, descuento asignado al grupo y subtotal.
+- En la parte inferior muestra importe, descuento total y total neto de la selección.
+- El descuento se reparte por unidad en centavos, con el residuo asignado a la última unidad, siguiendo el mismo criterio que el guardado.
+- El usuario puede **Volver a revisar** o **Confirmar y guardar**. No se envía nada al Apps Script hasta confirmar.
+- La pantalla de selección de stock y el resumen compacto de tallas no se modifican en esta mejora.

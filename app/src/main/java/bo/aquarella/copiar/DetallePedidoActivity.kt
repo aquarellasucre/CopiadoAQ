@@ -338,6 +338,138 @@ class DetallePedidoActivity : Activity() {
         if (unidades <= 0) return
         if (descuentoTotal < 0 || descuentoTotal > price * unidades) { descuento.error = "El descuento supera el importe seleccionado"; return }
 
+        mostrarRevisionSeleccion(seleccion, price, descuentoTotal, unidades)
+    }
+
+    private fun mostrarRevisionSeleccion(
+        seleccion: org.json.JSONArray,
+        price: Double,
+        descuentoTotal: Double,
+        unidades: Int
+    ) {
+        // Distribuye el descuento en centavos de la misma forma que se guardará:
+        // equitativamente por unidad y el residuo en la última unidad.
+        val descuentoCentavosTotal = Math.round(descuentoTotal * 100.0)
+        val descuentoBaseCentavos = if (unidades > 0) descuentoCentavosTotal / unidades else 0L
+        var descuentoRestanteCentavos = descuentoCentavosTotal
+        var indiceUnidad = 0
+        val grupos = ArrayList<JSONObject>()
+        var totalDescuentoGrupoCentavos = 0L
+        var totalBaseCentavos = Math.round(price * 100.0) * unidades
+
+        for (i in 0 until seleccion.length()) {
+            val grupo = seleccion.optJSONObject(i) ?: continue
+            val cantidad = grupo.optInt("Cantidad", 0).coerceAtLeast(0)
+            var descuentoGrupoCentavos = 0L
+            repeat(cantidad) {
+                indiceUnidad++
+                val descuentoUnidad = if (indiceUnidad == unidades) descuentoRestanteCentavos else descuentoBaseCentavos
+                descuentoRestanteCentavos -= descuentoUnidad
+                descuentoGrupoCentavos += descuentoUnidad
+            }
+            totalDescuentoGrupoCentavos += descuentoGrupoCentavos
+            grupos.add(JSONObject().apply {
+                put("Ciudad", grupo.optString("Ciudad"))
+                put("Talla", grupo.optString("Talla"))
+                put("Cantidad", cantidad)
+                put("DescuentoCentavos", descuentoGrupoCentavos)
+            })
+        }
+
+        val precioCentavos = Math.round(price * 100.0)
+        val subtotalCentavos = totalBaseCentavos - totalDescuentoGrupoCentavos
+        val contenido = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+        }
+        contenido.addView(TextView(this).apply {
+            text = "${articulo.text.toString().trim()}${if (descripcion.text.toString().isBlank()) "" else "\n${descripcion.text}"}"
+            textSize = 15f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+        }, parametros(8))
+        contenido.addView(TextView(this).apply {
+            text = "${grupos.size} combinación(es) · $unidades unidad(es)"
+            textSize = 14f
+        }, parametros(8))
+
+        val encabezado = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(6), 0, dp(6))
+        }
+        fun encabezadoCelda(texto: String, peso: Float, alineacion: Int = Gravity.START): TextView = TextView(this).apply {
+            text = texto
+            textSize = 12f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = alineacion
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, peso)
+        }
+        encabezado.addView(encabezadoCelda("Ciudad / talla", 2.2f))
+        encabezado.addView(encabezadoCelda("Cant.", 0.65f, Gravity.CENTER))
+        encabezado.addView(encabezadoCelda("Precio", 1.05f, Gravity.END))
+        encabezado.addView(encabezadoCelda("Desc.", 1.0f, Gravity.END))
+        encabezado.addView(encabezadoCelda("Subtotal", 1.2f, Gravity.END))
+        contenido.addView(encabezado)
+        contenido.addView(View(this).apply { setBackgroundColor(0xFFBDBDBD.toInt()) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)))
+
+        grupos.forEach { grupo ->
+            val cantidad = grupo.optInt("Cantidad")
+            val descuentoGrupo = grupo.optLong("DescuentoCentavos") / 100.0
+            val subtotalGrupo = (precioCentavos * cantidad - grupo.optLong("DescuentoCentavos")) / 100.0
+            val fila = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(7), 0, dp(7))
+            }
+            fun celda(texto: String, peso: Float, alineacion: Int = Gravity.START): TextView = TextView(this).apply {
+                text = texto
+                textSize = 12f
+                gravity = alineacion
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, peso)
+            }
+            fila.addView(celda("${grupo.optString("Ciudad")}\n${grupo.optString("Talla")}", 2.2f))
+            fila.addView(celda(cantidad.toString(), 0.65f, Gravity.CENTER))
+            fila.addView(celda("${formato(price)}", 1.05f, Gravity.END))
+            fila.addView(celda(formato(descuentoGrupo), 1.0f, Gravity.END))
+            fila.addView(celda(formato(subtotalGrupo), 1.2f, Gravity.END))
+            contenido.addView(fila)
+            contenido.addView(View(this).apply { setBackgroundColor(0xFFE0E0E0.toInt()) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)))
+        }
+
+        val resumenFinal = TextView(this).apply {
+            text = "\nImporte: Bs ${formato(totalBaseCentavos / 100.0)}\nDescuento: Bs ${formato(totalDescuentoGrupoCentavos / 100.0)}\nTOTAL: Bs ${formato(subtotalCentavos / 100.0)}"
+            textSize = 15f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = Gravity.END
+            setPadding(0, dp(10), 0, 0)
+        }
+        contenido.addView(resumenFinal)
+
+        val scrollRevision = ScrollView(this).apply {
+            addView(contenido)
+            isFillViewport = true
+        }
+        val dialogoRevision = AlertDialog.Builder(this)
+            .setTitle("Revisar selección antes de guardar")
+            .setView(scrollRevision)
+            .setPositiveButton("Confirmar y guardar", null)
+            .setNegativeButton("Volver a revisar", null)
+            .setCancelable(true)
+            .create()
+        dialogoRevision.setOnShowListener {
+            dialogoRevision.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                dialogoRevision.dismiss()
+                confirmarGuardarSeleccionStock(seleccion, price, descuentoTotal, unidades)
+            }
+        }
+        dialogoRevision.show()
+    }
+
+    private fun confirmarGuardarSeleccionStock(
+        seleccion: org.json.JSONArray,
+        price: Double,
+        descuentoTotal: Double,
+        unidades: Int
+    ) {
         val lineas = org.json.JSONArray()
         var restante = Math.round(descuentoTotal * 100.0) / 100.0
         var unidadIndex = 0
@@ -346,7 +478,7 @@ class DetallePedidoActivity : Activity() {
             val tallaGrupo = grupo.optString("Talla")
             val ciudad = grupo.optString("Ciudad")
             val cantidadGrupo = grupo.optInt("Cantidad", 0)
-            repeat(cantidadGrupo) { j ->
+            repeat(cantidadGrupo) {
                 unidadIndex++
                 val descUnidad = if (unidadIndex == unidades) restante else Math.round((descuentoTotal / unidades) * 100.0) / 100.0
                 restante = Math.round((restante - descUnidad) * 100.0) / 100.0
