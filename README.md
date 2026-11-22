@@ -150,3 +150,14 @@ Antes de compilar esta versión, actualizar el código del Apps Script con el ar
 - El descuento total ingresado se distribuye entre las unidades seleccionadas (con ajuste de centavos en la última unidad).
 
 **Para probar:** sustituye el Apps Script de prueba por `RegistroPedidos_Fase3_SeleccionStock_v1.4.gs`, mantén el token correcto y actualiza la implementación Web App existente a una nueva versión. Luego compila desde GitHub Actions. La compilación Android y la prueba en el teléfono aún están pendientes; este entorno no tiene Gradle/Android SDK.
+
+
+### Ajuste de formulario de selección de tallas (responsive)
+
+- La vista de disponibilidad ya no usa desplazamiento horizontal: la tabla se adapta al ancho del diálogo.
+- El ancho de las columnas de tallas se calcula en función de la cantidad de tallas detectadas y del ancho disponible.
+- La columna tienda se compacta cuando el artículo tiene muchas tallas.
+- Se compactaron las filas y la instrucción de selección para dar prioridad al formulario.
+- La imagen del artículo tiene altura adaptable y se reduce/oculta si el espacio vertical debe priorizar la tabla.
+- Los tamaños de texto de talla y stock se ajustan en columnas estrechas; se mantiene la selección por toque y quitar por pulsación larga.
+- La compilación y prueba física de esta revisión están pendientes.

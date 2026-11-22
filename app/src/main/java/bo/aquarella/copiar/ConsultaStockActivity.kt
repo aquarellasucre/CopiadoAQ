@@ -1314,13 +1314,18 @@ private fun mostrarConsultaStock(
     }
 }
 
-val anchoPantallaDp = (
-    resources.displayMetrics.widthPixels /
-        resources.displayMetrics.density
-).toInt()
+val densidadPantalla = resources.displayMetrics.density
+val anchoPantallaDp = (resources.displayMetrics.widthPixels / densidadPantalla).toInt()
 
-// Celdas amplias para selección táctil; la tabla podrá desplazarse horizontalmente.
-val anchoCeldaTalla = 52
+// La tabla se adapta al ancho del diálogo. La columna de tienda conserva
+// espacio para identificar la ciudad y las tallas reparten el ancho restante.
+val anchoDialogoDp = (anchoPantallaDp * 0.96f).toInt()
+val anchoColumnaTienda = if (indicesTallasVisibles.size >= 8) 82 else 94
+val espacioTallasDp = (anchoDialogoDp - 10 - 8 - anchoColumnaTienda).coerceAtLeast(1)
+val anchoCeldaTalla = (espacioTallasDp / indicesTallasVisibles.size.coerceAtLeast(1))
+    .coerceAtMost(58).coerceAtLeast(22)
+val altoFilaTienda = 58
+val altoFilaTabla = altoFilaTienda + 3
 
     val articulo = registros.firstOrNull()?.let {
         valor(it, indiceArticulo)
@@ -1441,9 +1446,9 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
 
     if (modoSeleccionPedido) {
         listaDisponibilidad.addView(TextView(this).apply {
-            text = "Modo pedido: toca una cantidad para agregar una unidad; mantén presionado para quitar una."
-            textSize = 11f
-            setPadding(dp(3), dp(3), dp(3), dp(5))
+            text = "Toca el stock para agregar · Mantén presionado para quitar"
+            textSize = 10f
+            setPadding(dp(3), dp(1), dp(3), dp(2))
             setTextColor(android.graphics.Color.rgb(30, 90, 150))
         })
     }
@@ -1472,10 +1477,10 @@ val precioMostrar = if (precio.startsWith("Bs", true)) {
                 gravity = Gravity.CENTER_VERTICAL
 
                 setPadding(
-                    dp(6),
-                    dp(5),
-                    dp(6),
-                    dp(5)
+                    dp(4),
+                    dp(2),
+                    dp(4),
+                    dp(2)
                 )
 
                 background = GradientDrawable().apply {
@@ -1532,8 +1537,8 @@ val informacion = TextView(this).apply {
 linea.addView(
     informacion,
     LinearLayout.LayoutParams(
-        dp(102),
-        dp(60)
+        dp(anchoColumnaTienda),
+        dp(altoFilaTienda)
     )
 )
 
@@ -1561,7 +1566,7 @@ linea.addView(
 
                     val talla = TextView(this).apply {
                         text = numero
-                        textSize = 15f
+                        textSize = if (anchoCeldaTalla < 36) 12f else 14f
                         setTextColor(
                             android.graphics.Color.rgb(85, 93, 101)
                         )
@@ -1570,7 +1575,7 @@ linea.addView(
 
                     val cantidadTexto = TextView(this).apply {
                         text = existencia.toString()
-                        textSize = 18f
+                        textSize = if (anchoCeldaTalla < 36) 14f else 17f
                         setTextColor(android.graphics.Color.rgb(22, 128, 68))
                         setTypeface(null, Typeface.BOLD)
                         gravity = Gravity.CENTER
@@ -1584,7 +1589,7 @@ linea.addView(
                                     seleccionPedido[clave] = actual + 1
                                     text = "$existencia\n×${actual + 1}"
                                     maxLines = 2
-                                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+                                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (anchoCeldaTalla < 36) 13f else 15f)
                                     setTextColor(android.graphics.Color.rgb(12, 91, 157))
                                     background = GradientDrawable().apply { setColor(android.graphics.Color.rgb(220, 238, 255)); cornerRadius = dp(4).toFloat(); setStroke(dp(1), android.graphics.Color.rgb(40, 120, 205)) }
                                 } else Toast.makeText(this@ConsultaStockActivity, "No puedes seleccionar más que el stock disponible ($existencia)", Toast.LENGTH_SHORT).show()
@@ -1597,7 +1602,7 @@ linea.addView(
                                     text = if (restante > 0) "$existencia\n×$restante" else existencia.toString()
                                     if (restante == 0) {
                                         maxLines = 1
-                                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 18f)
+                                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, if (anchoCeldaTalla < 36) 14f else 17f)
                                         setTextColor(android.graphics.Color.rgb(22, 128, 68))
                                         background = null
                                     }
@@ -1611,7 +1616,7 @@ linea.addView(
                         talla,
                         LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
-                            dp(25)
+                            dp(20)
                         )
                     )
 
@@ -1619,7 +1624,7 @@ linea.addView(
                         cantidadTexto,
                         LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
-                            dp(34)
+                            dp(36)
                         )
                     )
 
@@ -1630,7 +1635,7 @@ linea.addView(
                     celda,
                     LinearLayout.LayoutParams(
                         dp(anchoCeldaTalla),
-                        dp(60)
+                        dp(altoFilaTienda)
                     )
                 )
             }
@@ -1640,9 +1645,9 @@ linea.addView(
                 
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(66)
+                    dp(altoFilaTabla)
                 ).apply {
-                    bottomMargin = dp(4)
+                    bottomMargin = dp(3)
                 }
             )
 
@@ -1662,25 +1667,13 @@ linea.addView(
         }
     }
 
-    val scrollHorizontalDisponibilidad =
-    android.widget.HorizontalScrollView(this).apply {
-        isFillViewport = false
-        isHorizontalScrollBarEnabled = true
-        addView(
-            listaDisponibilidad,
-            ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        )
-    }
-
+    // La tabla ocupa el ancho disponible sin desplazamiento horizontal.
     val scrollDisponibilidad =
     android.widget.ScrollView(this).apply {
         isFillViewport = true
         isHorizontalScrollBarEnabled = false
         addView(
-            scrollHorizontalDisponibilidad,
+            listaDisponibilidad,
             ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1926,7 +1919,7 @@ linea.addView(
 
     val raizDialogo = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(8), dp(4), dp(8), dp(4))
+        setPadding(dp(5), dp(2), dp(5), dp(2))
     }
 
     val selector = LinearLayout(this).apply {
@@ -1972,7 +1965,7 @@ linea.addView(
         imagenArticulo,
         LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            dp(170)
+            dp(if (modoSeleccionPedido) 64 else 150)
         )
     )
 
@@ -2115,6 +2108,19 @@ linea.addView(
             (anchoPantalla * 0.96).toInt(),
             (altoPantalla * 0.90).toInt()
         )
+
+        // En modo pedido, la imagen es secundaria: su altura se calcula
+        // según cuántas filas de tiendas necesita mostrar el formulario.
+        val altoDisponibleDp = (altoPantalla / densidadPantalla * 0.90f).toInt()
+        val altoEstimadoFormulario = filasDisponibilidad.size * altoFilaTabla + 42 +
+            (if (modoSeleccionPedido) 24 else 0)
+        val altoReservado = 165 // título, selector, botones y márgenes del diálogo
+        val altoImagenMax = if (modoSeleccionPedido) 64 else 150
+        val altoImagenAdaptado = (altoDisponibleDp - altoEstimadoFormulario - altoReservado)
+            .coerceIn(0, altoImagenMax)
+        imagenArticulo.layoutParams = imagenArticulo.layoutParams.apply {
+            height = dp(altoImagenAdaptado)
+        }
 
         if (modoSeleccionPedido) {
             dialogo.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
