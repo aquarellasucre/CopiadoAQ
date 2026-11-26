@@ -2456,7 +2456,8 @@ private fun mostrarMensajeStock(texto: String) {
 
     override fun onResume() {
         super.onResume()
-        actualizarResumenSemanaSiCambio(forzar = true)
+        actualizarResumenSemanaSiCambio()
+        actualizarProgresoHoy()
         resumenSemanaHandler.removeCallbacks(revisarFechaRunnable)
         resumenSemanaHandler.postDelayed(revisarFechaRunnable, 60_000L)
     }
@@ -2473,6 +2474,10 @@ private fun mostrarMensajeStock(texto: String) {
 
     override fun onDestroy() {
         resumenSemanaHandler.removeCallbacks(revisarFechaRunnable)
+        resumenSemanaHost = null
+        segmentoProgresoHoy = null
+        barraProgresoHoy = null
+        textoFechaDiaHoy = null
         if (::webView.isInitialized) {
             webView.stopLoading()
             webView.loadUrl("about:blank")
