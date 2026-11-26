@@ -643,9 +643,11 @@ private fun crearResumenSemana(): LinearLayout {
 
         val segmento: View = if (esHoy) {
             FrameLayout(this).apply {
+                
+                val fondoPendienteHoy = android.graphics.Color.rgb(252, 224, 224)
                 val fondo = View(context).apply {
                     background = GradientDrawable().apply {
-                        setColor(android.graphics.Color.rgb(245, 245, 245))
+                        setColor(fondoPendienteHoy)
                         cornerRadius = dp(4).toFloat()
                     }
                 }
