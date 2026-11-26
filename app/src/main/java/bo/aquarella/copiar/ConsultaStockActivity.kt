@@ -539,208 +539,211 @@ private fun crearResumenSemana(): LinearLayout {
     }
     contenedor.addView(textoFecha, LinearLayout.LayoutParams(dp(68), dp(32)))
 
-    // 2. Semana: letra del día, círculo del día actual y fecha dentro de cada barra.
-    
+    // 2. Semana: nombre completo en el día actual, abreviaturas en el resto y barra de progreso.
     val centro = LinearLayout(this).apply {
-    orientation = LinearLayout.VERTICAL
-    gravity = Gravity.CENTER_HORIZONTAL
-    setPadding(dp(3), 0, dp(3), 0)
-}
-
-val filaDias = LinearLayout(this).apply {
-    orientation = LinearLayout.HORIZONTAL
-    gravity = Gravity.CENTER
-}
-
-val dias = listOf("L", "M", "X", "J", "V", "S", "D")
-
-val tamCirculo = dp(16)
-
-dias.forEachIndexed { indice, dia ->
-
-    val pesoDia = if (indice == diaActual) 2.5f else 1f
-
-    val celdaDia = FrameLayout(this).apply {
-        layoutParams = LinearLayout.LayoutParams(
-            0,
-            dp(17),
-            pesoDia
-        ).apply {
-            setMargins(dp(1), 0, dp(1), 0)
-        }
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER_HORIZONTAL
+        setPadding(dp(3), 0, dp(3), 0)
     }
 
-    val etiqueta = TextView(this).apply {
-        text = dia
-        textSize = 9f
+    val filaDias = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER
-        textAlignment = View.TEXT_ALIGNMENT_CENTER
-        includeFontPadding = false
+    }
 
-        if (indice == diaActual) {
-            setTextColor(android.graphics.Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(rojo)
+    val dias = listOf("L", "M", "X", "J", "V", "S", "D")
+    val nombresDiasCompletos = listOf(
+        "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"
+    )
+
+    dias.forEachIndexed { indice, dia ->
+        val esHoy = indice == diaActual
+        val pesoDia = if (esHoy) 3.4f else 1f
+
+        val etiqueta = TextView(this).apply {
+            text = if (esHoy) nombresDiasCompletos[indice] else dia
+            textSize = if (esHoy) 7.5f else 9f
+            gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            includeFontPadding = false
+            setSingleLine(true)
+            maxLines = 1
+
+            if (esHoy) {
+                setTextColor(android.graphics.Color.WHITE)
+                setTypeface(null, Typeface.BOLD)
+                setPadding(dp(6), 0, dp(6), 0)
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    setColor(rojo)
+                    cornerRadius = dp(9).toFloat()
+                }
+            } else {
+                setTextColor(azul)
+                setTypeface(null, Typeface.NORMAL)
+            }
+        }
+
+        filaDias.addView(
+            etiqueta,
+            LinearLayout.LayoutParams(
+                0,
+                dp(17),
+                pesoDia
+            ).apply {
+                setMargins(dp(1), 0, dp(1), 0)
+            }
+        )
+    }
+
+    centro.addView(
+        filaDias,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(17)
+        )
+    )
+
+    val barra = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER
+    }
+    val ahora = Calendar.getInstance()
+
+    val minutosTranscurridos =
+        ahora.get(Calendar.HOUR_OF_DAY) * 60 +
+        ahora.get(Calendar.MINUTE)
+
+    val progresoDia =
+        minutosTranscurridos / (24f * 60f)
+
+    repeat(7) { indice ->
+        val fechaDia = (inicioSemana.clone() as Calendar).apply {
+            add(Calendar.DAY_OF_MONTH, indice)
+        }.get(Calendar.DAY_OF_MONTH)
+
+        val esHoy = indice == diaActual
+        val pesoDia = if (esHoy) 3.4f else 1f
+
+        val segmento: View = if (esHoy) {
+            FrameLayout(this).apply {
+                val fondo = View(context).apply {
+                    background = GradientDrawable().apply {
+                        setColor(android.graphics.Color.rgb(245, 245, 245))
+                        cornerRadius = dp(4).toFloat()
+                    }
+                }
+
+                addView(
+                    fondo,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
+
+                val progreso = View(context).apply {
+                    background = GradientDrawable().apply {
+                        setColor(rojo)
+                        cornerRadius = dp(4).toFloat()
+                    }
+                }
+
+                addView(
+                    progreso,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
+
+                val textoFechaDia = TextView(context).apply {
+                    text = fechaDia.toString()
+                    textSize = 8f
+                    gravity = Gravity.CENTER
+                    textAlignment = View.TEXT_ALIGNMENT_CENTER
+                    setTypeface(null, Typeface.BOLD)
+                    setTextColor(
+                        if (progresoDia >= 0.5f) {
+                            android.graphics.Color.WHITE
+                        } else {
+                            grisTexto
+                        }
+                    )
+                }
+
+                addView(
+                    textoFechaDia,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
+
+                post {
+                    val anchoProgreso = (width * progresoDia).toInt()
+                    progreso.layoutParams.width = anchoProgreso
+                    progreso.requestLayout()
+
+                    textoFechaDia.post {
+                        val inicioTexto = (width - textoFechaDia.width) / 2f
+                        val cubierto = anchoProgreso >= inicioTexto + (textoFechaDia.width * 0.5f)
+                        textoFechaDia.setTextColor(
+                            if (cubierto) {
+                                android.graphics.Color.WHITE
+                            } else {
+                                grisTexto
+                            }
+                        )
+                    }
+                }
             }
         } else {
-            setTextColor(azul)
-            setTypeface(null, Typeface.NORMAL)
-        }
-    }
-
-    val paramsEtiqueta = if (indice == diaActual) {
-        FrameLayout.LayoutParams(tamCirculo, tamCirculo, Gravity.CENTER)
-    } else {
-        FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            Gravity.CENTER
-        )
-    }
-
-    celdaDia.addView(etiqueta, paramsEtiqueta)
-    filaDias.addView(celdaDia)
-}
-
-centro.addView(
-    filaDias,
-    LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        dp(17)
-    )
-)
-
-val barra = LinearLayout(this).apply {
-    orientation = LinearLayout.HORIZONTAL
-    gravity = Gravity.CENTER
-}
-val ahora = Calendar.getInstance()
-
-val minutosTranscurridos =
-    ahora.get(Calendar.HOUR_OF_DAY) * 60 +
-    ahora.get(Calendar.MINUTE)
-
-val progresoDia =
-    minutosTranscurridos / (24f * 60f)
-
-
-repeat(7) { indice ->
-
-    val fechaDia = (inicioSemana.clone() as Calendar).apply {
-        add(Calendar.DAY_OF_MONTH, indice)
-    }.get(Calendar.DAY_OF_MONTH)
-
-    val pesoDia = if (indice == diaActual) 2.5f else 1f
-
-    val segmento: View = if (indice == diaActual) {
-
-    FrameLayout(this).apply {
-
-        val fondo = View(context).apply {
-            background = GradientDrawable().apply {
-                setColor(android.graphics.Color.rgb(245, 245, 245))
-                cornerRadius = dp(4).toFloat()
-            }
-        }
-
-        addView(
-            fondo,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        )
-
-        val progreso = View(context).apply {
-            background = GradientDrawable().apply {
-                setColor(rojo)
-                cornerRadius = dp(4).toFloat()
-            }
-        }
-
-        addView(
-            progreso,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        )
-
-        addView(
-            TextView(context).apply {
+            TextView(this).apply {
                 text = fechaDia.toString()
                 textSize = 8f
                 gravity = Gravity.CENTER
                 textAlignment = View.TEXT_ALIGNMENT_CENTER
-                setTypeface(null, Typeface.BOLD)
-                setTextColor(android.graphics.Color.WHITE)
-            },
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
+                setSingleLine(true)
+
+                if (indice < diaActual) {
+                    setTextColor(android.graphics.Color.rgb(125, 55, 55))
+                    setBackgroundColor(rojoSuave)
+                } else {
+                    setTextColor(grisTexto)
+                    setBackgroundColor(grisFuturo)
+                }
+            }
+        }
+
+        barra.addView(
+            segmento,
+            LinearLayout.LayoutParams(
+                0,
+                dp(13),
+                pesoDia
+            ).apply {
+                setMargins(dp(1), 0, dp(1), 0)
+            }
         )
-
-        post {
-            progreso.layoutParams.width =
-                (width * progresoDia).toInt()
-
-            progreso.requestLayout()
-        }
     }
 
-} else {
+    centro.addView(
+        barra,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(13)
+        )
+    )
 
-    TextView(this).apply {
-        text = fechaDia.toString()
-        textSize = 8f
-        gravity = Gravity.CENTER
-        textAlignment = View.TEXT_ALIGNMENT_CENTER
-        setSingleLine(true)
-
-        if (indice < diaActual) {
-
-            setTextColor(android.graphics.Color.rgb(125, 55, 55))
-            setBackgroundColor(rojoSuave)
-
-        } else {
-
-            setTextColor(grisTexto)
-            setBackgroundColor(grisFuturo)
-        }
-    }
-}
-
-    barra.addView(
-        segmento,
+    contenedor.addView(
+        centro,
         LinearLayout.LayoutParams(
             0,
-            dp(13),
-            pesoDia
-        ).apply {
-            setMargins(dp(1), 0, dp(1), 0)
-        }
+            dp(31),
+            1f
+        )
     )
-}
-
-centro.addView(
-    barra,
-    LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        dp(13)
-    )
-)
-
-contenedor.addView(
-    centro,
-    LinearLayout.LayoutParams(
-        0,
-        dp(31),
-        1f
-    )
-)
 
     val grupoSemana = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
@@ -788,7 +791,7 @@ contenedor.addView(
     fechaResumenMostrada = claveFechaResumen()
 
     return contenedor
-    }
+}
 
     private fun crearBoton(texto: String, peso: Float, accion: () -> Unit): Button =
         Button(this).apply {
