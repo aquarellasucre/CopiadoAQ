@@ -602,6 +602,15 @@ val barra = LinearLayout(this).apply {
     orientation = LinearLayout.HORIZONTAL
     gravity = Gravity.CENTER
 }
+val ahora = Calendar.getInstance()
+
+val minutosTranscurridos =
+    ahora.get(Calendar.HOUR_OF_DAY) * 60 +
+    ahora.get(Calendar.MINUTE)
+
+val progresoDia =
+    minutosTranscurridos / (24f * 60f)
+
 
 repeat(7) { indice ->
 
@@ -617,7 +626,7 @@ repeat(7) { indice ->
 
         val fondo = View(context).apply {
             background = GradientDrawable().apply {
-                setColor(grisFuturo)
+                setColor(android.graphics.Color.rgb(245, 245, 245))
                 cornerRadius = dp(4).toFloat()
             }
         }
