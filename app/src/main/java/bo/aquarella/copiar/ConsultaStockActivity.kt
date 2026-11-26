@@ -633,6 +633,71 @@ private fun crearResumenSemana(): LinearLayout {
     )
 }
 
+            centro.addView(
+        barra,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(13)
+        )
+    )
+
+    contenedor.addView(
+        centro,
+        LinearLayout.LayoutParams(
+            0,
+            dp(31),
+            1f
+        )
+    )
+
+    val grupoSemana = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+    }
+
+    val textoSemana = TextView(this).apply {
+        text = "Semana:"
+        textSize = 9f
+        setTypeface(null, Typeface.BOLD)
+        setTextColor(android.graphics.Color.rgb(100, 116, 139))
+        setPadding(0, 0, dp(2), 0)
+        setSingleLine(true)
+    }
+
+    grupoSemana.addView(textoSemana)
+
+    val numeroSemana = TextView(this).apply {
+        text = semana.toString()
+        textSize = 9f
+        setTextColor(android.graphics.Color.rgb(50, 128, 90))
+        setTypeface(null, Typeface.BOLD)
+        gravity = Gravity.CENTER
+        setPadding(dp(4), 0, dp(4), 0)
+        background = GradientDrawable().apply {
+            setColor(android.graphics.Color.rgb(240, 248, 243))
+            cornerRadius = dp(4).toFloat()
+            setStroke(
+                dp(1),
+                android.graphics.Color.rgb(165, 210, 184)
+            )
+        }
+    }
+
+    grupoSemana.addView(
+        numeroSemana,
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            dp(17)
+        )
+    )
+
+    contenedor.addView(grupoSemana)
+
+    fechaResumenMostrada = claveFechaResumen()
+
+    return contenedor
+    }
+
     private fun crearBoton(texto: String, peso: Float, accion: () -> Unit): Button =
         Button(this).apply {
             text = texto
