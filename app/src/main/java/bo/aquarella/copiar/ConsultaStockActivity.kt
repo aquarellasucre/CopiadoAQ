@@ -539,7 +539,7 @@ private fun crearResumenSemana(): LinearLayout {
     }
     contenedor.addView(textoFecha, LinearLayout.LayoutParams(dp(68), dp(32)))
 
-    // 2. Semana: recuadro ajustado al texto del día actual, abreviaturas en el resto y barra de progreso.
+    // 2. Semana: recuadro vertical ampliado para el día actual, abreviaturas en el resto y barra de progreso.
     val centro = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.CENTER_HORIZONTAL
@@ -563,7 +563,7 @@ private fun crearResumenSemana(): LinearLayout {
         val celdaDia = FrameLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 0,
-                dp(16),
+                dp(18),
                 pesoDia
             ).apply {
                 setMargins(dp(1), 0, dp(1), 0)
@@ -572,7 +572,7 @@ private fun crearResumenSemana(): LinearLayout {
 
         val etiqueta = TextView(this).apply {
             text = if (esHoy) nombresDiasCompletos[indice] else dia
-            textSize = if (esHoy) 9.5f else 9f
+            textSize = if (esHoy) 10f else 9f
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             includeFontPadding = false
@@ -582,7 +582,7 @@ private fun crearResumenSemana(): LinearLayout {
             if (esHoy) {
                 setTextColor(android.graphics.Color.WHITE)
                 setTypeface(null, Typeface.BOLD)
-                setPadding(dp(5), dp(1), dp(5), dp(1))
+                setPadding(dp(5), dp(2), dp(5), dp(2))
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
                     setColor(rojo)
@@ -597,7 +597,7 @@ private fun crearResumenSemana(): LinearLayout {
         val paramsEtiqueta = if (esHoy) {
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
                 Gravity.CENTER
             )
         } else {
@@ -616,7 +616,7 @@ private fun crearResumenSemana(): LinearLayout {
         filaDias,
         LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            dp(16)
+            dp(18)
         )
     )
 
@@ -750,7 +750,7 @@ private fun crearResumenSemana(): LinearLayout {
             ViewGroup.LayoutParams.MATCH_PARENT,
             dp(13)
         ).apply {
-            topMargin = dp(2)
+            topMargin = dp(1)
         }
     )
 
@@ -810,7 +810,6 @@ private fun crearResumenSemana(): LinearLayout {
 
     return contenedor
 }
-
     private fun crearBoton(texto: String, peso: Float, accion: () -> Unit): Button =
         Button(this).apply {
             text = texto
