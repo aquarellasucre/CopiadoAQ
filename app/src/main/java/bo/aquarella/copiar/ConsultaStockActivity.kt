@@ -83,6 +83,10 @@ class ConsultaStockActivity : Activity() {
     private val resumenSemanaHandler = Handler(Looper.getMainLooper())
     private var resumenSemanaHost: LinearLayout? = null
     private var fechaResumenMostrada: String = ""
+    private var segmentoProgresoHoy: View? = null
+    private var barraProgresoHoy: View? = null
+    private var textoFechaDiaHoy: TextView? = null
+    private var grisTextoHoy: Int = android.graphics.Color.rgb(85, 85, 85)
     private val revisarFechaRunnable = object : Runnable {
         override fun run() {
             actualizarResumenSemanaSiCambio()
@@ -488,6 +492,41 @@ private fun actualizarResumenSemanaSiCambio(forzar: Boolean = false) {
     if (host.childCount == 0) return
     host.removeViewAt(0)
     host.addView(crearResumenSemana(), 0)
+}
+
+private fun actualizarProgresoHoy() {
+    val segmento = segmentoProgresoHoy ?: return
+    val progreso = barraProgresoHoy ?: return
+    val textoFechaDia = textoFechaDiaHoy ?: return
+
+    val ahora = Calendar.getInstance()
+    val minutosTranscurridos =
+        ahora.get(Calendar.HOUR_OF_DAY) * 60 +
+        ahora.get(Calendar.MINUTE)
+    val progresoDia = minutosTranscurridos / (24f * 60f)
+
+    segmento.post {
+        if (segmento.width <= 0) return@post
+
+        val anchoProgreso = (segmento.width * progresoDia).toInt()
+        val params = progreso.layoutParams
+        if (params.width != anchoProgreso) {
+            params.width = anchoProgreso
+            progreso.layoutParams = params
+        }
+
+        textoFechaDia.post {
+            val inicioTexto = (segmento.width - textoFechaDia.width) / 2f
+            val cubierto = anchoProgreso >= inicioTexto + (textoFechaDia.width * 0.5f)
+            textoFechaDia.setTextColor(
+                if (cubierto) {
+                    android.graphics.Color.WHITE
+                } else {
+                    grisTextoHoy
+                }
+            )
+        }
+    }
 }
 
 private fun crearResumenSemana(): LinearLayout {
