@@ -554,20 +554,32 @@ val filaDias = LinearLayout(this).apply {
 
 val dias = listOf("L", "M", "X", "J", "V", "S", "D")
 
+val tamCirculo = dp(16)
+
 dias.forEachIndexed { indice, dia ->
 
     val pesoDia = if (indice == diaActual) 2.5f else 1f
+
+    val celdaDia = FrameLayout(this).apply {
+        layoutParams = LinearLayout.LayoutParams(
+            0,
+            dp(17),
+            pesoDia
+        ).apply {
+            setMargins(dp(1), 0, dp(1), 0)
+        }
+    }
 
     val etiqueta = TextView(this).apply {
         text = dia
         textSize = 9f
         gravity = Gravity.CENTER
         textAlignment = View.TEXT_ALIGNMENT_CENTER
+        includeFontPadding = false
 
         if (indice == diaActual) {
             setTextColor(android.graphics.Color.WHITE)
             setTypeface(null, Typeface.BOLD)
-
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(rojo)
@@ -578,16 +590,18 @@ dias.forEachIndexed { indice, dia ->
         }
     }
 
-    filaDias.addView(
-        etiqueta,
-        LinearLayout.LayoutParams(
-            0,
-            dp(17),
-            pesoDia
-        ).apply {
-            setMargins(dp(1), 0, dp(1), 0)
-        }
-    )
+    val paramsEtiqueta = if (indice == diaActual) {
+        FrameLayout.LayoutParams(tamCirculo, tamCirculo, Gravity.CENTER)
+    } else {
+        FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            Gravity.CENTER
+        )
+    }
+
+    celdaDia.addView(etiqueta, paramsEtiqueta)
+    filaDias.addView(celdaDia)
 }
 
 centro.addView(
