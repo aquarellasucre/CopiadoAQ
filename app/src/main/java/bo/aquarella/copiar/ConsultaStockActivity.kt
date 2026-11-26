@@ -537,9 +537,9 @@ private fun crearResumenSemana(): LinearLayout {
         gravity = Gravity.CENTER_VERTICAL
         setSingleLine(true)
     }
-    contenedor.addView(textoFecha, LinearLayout.LayoutParams(dp(68), dp(32)))
+    contenedor.addView(textoFecha, LinearLayout.LayoutParams(dp(68), dp(33)))
 
-    // 2. Semana: nombre completo en el día actual, abreviaturas en el resto y barra de progreso.
+    // 2. Semana: recuadro ajustado al texto del día actual, abreviaturas en el resto y barra de progreso.
     val centro = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.CENTER_HORIZONTAL
@@ -560,6 +560,16 @@ private fun crearResumenSemana(): LinearLayout {
         val esHoy = indice == diaActual
         val pesoDia = if (esHoy) 3.4f else 1f
 
+        val celdaDia = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                dp(16),
+                pesoDia
+            ).apply {
+                setMargins(dp(1), 0, dp(1), 0)
+            }
+        }
+
         val etiqueta = TextView(this).apply {
             text = if (esHoy) nombresDiasCompletos[indice] else dia
             textSize = if (esHoy) 7.5f else 9f
@@ -572,11 +582,11 @@ private fun crearResumenSemana(): LinearLayout {
             if (esHoy) {
                 setTextColor(android.graphics.Color.WHITE)
                 setTypeface(null, Typeface.BOLD)
-                setPadding(dp(6), 0, dp(6), 0)
+                setPadding(dp(5), dp(1), dp(5), dp(1))
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
                     setColor(rojo)
-                    cornerRadius = dp(9).toFloat()
+                    cornerRadius = dp(4).toFloat()
                 }
             } else {
                 setTextColor(azul)
@@ -584,24 +594,32 @@ private fun crearResumenSemana(): LinearLayout {
             }
         }
 
-        filaDias.addView(
-            etiqueta,
-            LinearLayout.LayoutParams(
-                0,
-                dp(17),
-                pesoDia
-            ).apply {
-                setMargins(dp(1), 0, dp(1), 0)
-            }
-        )
+        val paramsEtiqueta = if (esHoy) {
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
+        } else {
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER
+            )
+        }
+
+        celdaDia.addView(etiqueta, paramsEtiqueta)
+        filaDias.addView(celdaDia)
     }
 
     centro.addView(
         filaDias,
         LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            dp(17)
-        )
+            dp(16)
+        ).apply {
+            bottomMargin = dp(2)
+        }
     )
 
     val barra = LinearLayout(this).apply {
@@ -740,7 +758,7 @@ private fun crearResumenSemana(): LinearLayout {
         centro,
         LinearLayout.LayoutParams(
             0,
-            dp(31),
+            dp(33),
             1f
         )
     )
@@ -791,7 +809,7 @@ private fun crearResumenSemana(): LinearLayout {
     fechaResumenMostrada = claveFechaResumen()
 
     return contenedor
-}
+    }
 
     private fun crearBoton(texto: String, peso: Float, accion: () -> Unit): Button =
         Button(this).apply {
