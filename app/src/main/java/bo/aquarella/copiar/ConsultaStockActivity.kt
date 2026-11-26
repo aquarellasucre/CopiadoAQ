@@ -569,7 +569,7 @@ private fun crearResumenSemana(): LinearLayout {
                 setTypeface(null, Typeface.NORMAL)
             }
         }
-        filaDias.addView(etiqueta, LinearLayout.LayoutParams(dp(17), dp(17)).apply {
+        filaDias.addView(etiqueta, LinearLayout.LayoutParams(0, dp(17), 1f).apply {
             setMargins(dp(1), 0, dp(1), 0)
         })
     }
@@ -593,7 +593,10 @@ private fun crearResumenSemana(): LinearLayout {
             if (indice == diaActual) {
                 setTextColor(android.graphics.Color.WHITE)
                 setTypeface(null, Typeface.BOLD)
-                setBackgroundColor(rojo)
+                background = GradientDrawable().apply {
+                    setColor(rojo)
+                    cornerRadius = dp(4).toFloat()
+                }
             } else if (indice < diaActual) {
                 setTextColor(android.graphics.Color.rgb(125, 55, 55))
                 setBackgroundColor(rojoSuave)
