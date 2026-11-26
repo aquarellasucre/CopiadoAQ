@@ -619,6 +619,7 @@ private fun crearResumenSemana(): LinearLayout {
     val textoSemana = TextView(this).apply {
         text = "Semana:"
         textSize = 9f
+        setTypeface(null, Typeface.BOLD)
         setTextColor(android.graphics.Color.rgb(100, 116, 139))
         setPadding(0, 0, dp(2), 0)
         setSingleLine(true)
