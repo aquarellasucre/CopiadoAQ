@@ -533,7 +533,7 @@ private fun crearResumenSemana(): LinearLayout {
         )
         text = contenido
         setTextColor(android.graphics.Color.rgb(51, 51, 51))
-        textSize = 11f
+        textSize = 12f
         gravity = Gravity.CENTER_VERTICAL
         setSingleLine(true)
     }
@@ -677,7 +677,7 @@ private fun crearResumenSemana(): LinearLayout {
 
                 val textoFechaDia = TextView(context).apply {
                     text = fechaDia.toString()
-                    textSize = 11f
+                    textSize = 10f
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
                     setTypeface(null, Typeface.BOLD)
@@ -719,7 +719,7 @@ private fun crearResumenSemana(): LinearLayout {
         } else {
             TextView(this).apply {
                 text = fechaDia.toString()
-                textSize = 8f
+                textSize = 9f
                 gravity = Gravity.CENTER
                 textAlignment = View.TEXT_ALIGNMENT_CENTER
                 setSingleLine(true)
@@ -783,7 +783,7 @@ private fun crearResumenSemana(): LinearLayout {
 
     val numeroSemana = TextView(this).apply {
         text = semana.toString()
-        textSize = 9f
+        textSize = 11f
         setTextColor(android.graphics.Color.rgb(50, 128, 90))
         setTypeface(null, Typeface.BOLD)
         gravity = Gravity.CENTER
