@@ -537,7 +537,7 @@ private fun crearResumenSemana(): LinearLayout {
         gravity = Gravity.CENTER_VERTICAL
         setSingleLine(true)
     }
-    contenedor.addView(textoFecha, LinearLayout.LayoutParams(dp(68), dp(33)))
+    contenedor.addView(textoFecha, LinearLayout.LayoutParams(dp(68), dp(32)))
 
     // 2. Semana: recuadro ajustado al texto del día actual, abreviaturas en el resto y barra de progreso.
     val centro = LinearLayout(this).apply {
@@ -558,7 +558,7 @@ private fun crearResumenSemana(): LinearLayout {
 
     dias.forEachIndexed { indice, dia ->
         val esHoy = indice == diaActual
-        val pesoDia = if (esHoy) 3.4f else 1f
+        val pesoDia = if (esHoy) 4.0f else 1f
 
         val celdaDia = FrameLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(
@@ -572,7 +572,7 @@ private fun crearResumenSemana(): LinearLayout {
 
         val etiqueta = TextView(this).apply {
             text = if (esHoy) nombresDiasCompletos[indice] else dia
-            textSize = if (esHoy) 7.5f else 9f
+            textSize = if (esHoy) 9.5f else 9f
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             includeFontPadding = false
@@ -617,9 +617,7 @@ private fun crearResumenSemana(): LinearLayout {
         LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             dp(16)
-        ).apply {
-            bottomMargin = dp(2)
-        }
+        )
     )
 
     val barra = LinearLayout(this).apply {
@@ -641,7 +639,7 @@ private fun crearResumenSemana(): LinearLayout {
         }.get(Calendar.DAY_OF_MONTH)
 
         val esHoy = indice == diaActual
-        val pesoDia = if (esHoy) 3.4f else 1f
+        val pesoDia = if (esHoy) 4.0f else 1f
 
         val segmento: View = if (esHoy) {
             FrameLayout(this).apply {
@@ -751,14 +749,16 @@ private fun crearResumenSemana(): LinearLayout {
         LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             dp(13)
-        )
+        ).apply {
+            topMargin = dp(2)
+        }
     )
 
     contenedor.addView(
         centro,
         LinearLayout.LayoutParams(
             0,
-            dp(33),
+            dp(32),
             1f
         )
     )
@@ -809,7 +809,7 @@ private fun crearResumenSemana(): LinearLayout {
     fechaResumenMostrada = claveFechaResumen()
 
     return contenedor
-    }
+}
 
     private fun crearBoton(texto: String, peso: Float, accion: () -> Unit): Button =
         Button(this).apply {
