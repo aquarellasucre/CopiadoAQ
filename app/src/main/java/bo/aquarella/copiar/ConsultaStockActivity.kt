@@ -591,66 +591,31 @@ private fun crearResumenSemana(): LinearLayout {
     val progresoDia =
     minutosTranscurridos / (24f * 60f)
 
-    repeat(7) { indice ->
+        repeat(7) { indice ->
 
     val fechaDia = (inicioSemana.clone() as Calendar).apply {
         add(Calendar.DAY_OF_MONTH, indice)
     }.get(Calendar.DAY_OF_MONTH)
 
-    val segmento: View = if (indice == diaActual) {
+    val segmento = TextView(this).apply {
+        text = fechaDia.toString()
+        textSize = 8f
+        gravity = Gravity.CENTER
+        setSingleLine(true)
 
-        FrameLayout(this).apply {
-
+        if (indice == diaActual) {
+            setTextColor(android.graphics.Color.WHITE)
+            setTypeface(null, Typeface.BOLD)
             background = GradientDrawable().apply {
-                setColor(grisFuturo)
+                setColor(rojo)
                 cornerRadius = dp(4).toFloat()
             }
-
-            val barraProgreso = View(context).apply {
-                background = GradientDrawable().apply {
-                    setColor(rojo)
-                    cornerRadius = dp(4).toFloat()
-                }
-            }
-
-            addView(
-                barraProgreso,
-                FrameLayout.LayoutParams(
-                    (dp(60) * progresoDia).toInt(),
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            )
-
-            addView(
-                TextView(context).apply {
-                    text = fechaDia.toString()
-                    gravity = Gravity.CENTER
-                    textSize = 8f
-                    setTypeface(null, Typeface.BOLD)
-                    setTextColor(android.graphics.Color.WHITE)
-                },
-                FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            )
-        }
-
-    } else {
-
-        TextView(this).apply {
-            text = fechaDia.toString()
-            textSize = 8f
-            gravity = Gravity.CENTER
-            setSingleLine(true)
-
-            if (indice < diaActual) {
-                setTextColor(android.graphics.Color.rgb(125, 55, 55))
-                setBackgroundColor(rojoSuave)
-            } else {
-                setTextColor(grisTexto)
-                setBackgroundColor(grisFuturo)
-            }
+        } else if (indice < diaActual) {
+            setTextColor(android.graphics.Color.rgb(125, 55, 55))
+            setBackgroundColor(rojoSuave)
+        } else {
+            setTextColor(grisTexto)
+            setBackgroundColor(grisFuturo)
         }
     }
 
