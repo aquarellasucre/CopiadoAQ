@@ -677,7 +677,7 @@ private fun crearResumenSemana(): LinearLayout {
 
                 val textoFechaDia = TextView(context).apply {
                     text = fechaDia.toString()
-                    textSize = 8f
+                    textSize = 10f
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
                     setTypeface(null, Typeface.BOLD)
