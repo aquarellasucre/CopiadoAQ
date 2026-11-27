@@ -100,6 +100,15 @@ class PlantillasActivity : Activity() {
         }
         principal.addView(consultaStock)
 
+        val tareas = Button(this).apply {
+            text = "Lista de tareas diarias"
+            isAllCaps = false
+            setOnClickListener {
+                startActivity(android.content.Intent(this@PlantillasActivity, TareasActivity::class.java))
+            }
+        }
+        principal.addView(tareas)
+
         val categorias = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
