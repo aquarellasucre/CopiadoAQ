@@ -458,7 +458,10 @@ private fun mostrarFormularioLogin(soloGuardar: Boolean) {
     val guardar = android.widget.CheckBox(this).apply { text = "Guardar credenciales cifradas"; isChecked = prefs.contains("usuario") && prefs.contains("contrasena") }
     val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(22), dp(8), dp(22), dp(4)); addView(usuario); addView(contrasena); addView(guardar) }
     val dialog = AlertDialog.Builder(this).setTitle(if (soloGuardar) "Credenciales de Aquarella" else "Iniciar sesión en Aquarella").setView(panel)
-        .setNegativeButton(if (soloGuardar) "Cancelar" else "Ahora no", null)
+        .setNegativeButton(if (soloGuardar) "Cancelar" else "Ahora no") { _, _ ->
+            // Si el usuario pospone el login, liberar el bloqueo para que Consultar pueda volver a abrirlo.
+            loginDialogVisible = false
+        }
         .setPositiveButton(if (soloGuardar) "Guardar" else "Iniciar sesión", null)
         .setNeutralButton(if (prefs.contains("usuario")) "Eliminar guardadas" else null, null).create()
     dialog.setOnShowListener {
@@ -472,6 +475,7 @@ private fun mostrarFormularioLogin(soloGuardar: Boolean) {
         dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener { prefs.edit().clear().apply(); usuario.text.clear(); contrasena.text.clear(); guardar.isChecked = false; Toast.makeText(this, "Credenciales guardadas eliminadas", Toast.LENGTH_SHORT).show(); dialog.dismiss(); loginDialogVisible = false }
     }
     dialog.setOnCancelListener { loginDialogVisible = false }
+    dialog.setOnDismissListener { loginDialogVisible = false }
     dialog.show()
 }
 
