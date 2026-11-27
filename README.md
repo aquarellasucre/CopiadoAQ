@@ -175,3 +175,11 @@ Antes de compilar esta versión, actualizar el código del Apps Script con el ar
 - Campo de código de artículo con marco redondeado y botón integrado **Pegar**, que inserta el texto del portapapeles en el campo al tocarlo.
 - Selector de tipo de venta en tres botones redondeados: Contado, Crédito y Cotización.
 - Cotización queda seleccionada por defecto; solo una opción puede estar activa y la selección se restablece a Cotización al limpiar el formulario.
+
+## Módulo Tareas — pendientes atrasadas y ajuste visual
+
+La pantalla **Tareas de hoy** ahora muestra también las tareas sin completar de fechas anteriores. Las tareas atrasadas se distinguen con un aviso de color ámbar que indica los días de atraso y conserva visible la fecha original de programación. Las tareas futuras no aparecen en la lista diaria; las tareas completadas de días anteriores permanecen guardadas, pero no se muestran en la vista para evitar acumulación.
+
+Editar una tarea atrasada conserva su fecha original, por lo que no se reinicia artificialmente el contador de atraso. Al marcarla como completada, se quita de la lista de pendientes atrasados.
+
+La pantalla usa tema claro, fondo de trabajo suave, tarjetas compactas y barra de estado blanca con iconos oscuros, respetando el área segura del sistema Android.
