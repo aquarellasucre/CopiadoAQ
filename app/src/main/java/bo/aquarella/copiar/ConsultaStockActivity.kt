@@ -73,6 +73,8 @@ class ConsultaStockActivity : Activity() {
     private var loginDialogVisible = false
     private var loginAttemptInProgress = false
     private var navegandoAConsultaTrasLogin = false
+    // Código que debe consultarse automáticamente después de recuperar una sesión vencida.
+    private var articuloPendienteTrasLogin = ""
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var botonDescargarLiquidacion: Button
     private var modoSeleccionPedido = false
@@ -892,6 +894,7 @@ private fun crearResumenSemana(): LinearLayout {
                     navegandoAConsultaTrasLogin = false
                     loginDialogVisible = false
                     estado.text = "Sesión iniciada. Ya puedes consultar el artículo."
+                    iniciarConsultaPendienteTrasLogin()
                     iniciarConsultaPedidoAutomatica()
                 }
                 "\"CLICK_CONSULTA\"" -> {
@@ -903,6 +906,7 @@ private fun crearResumenSemana(): LinearLayout {
                                 navegandoAConsultaTrasLogin = false
                                 loginDialogVisible = false
                                 estado.text = "Sesión iniciada. Ya puedes consultar el artículo."
+                                iniciarConsultaPendienteTrasLogin()
                                 iniciarConsultaPedidoAutomatica()
                             } else {
                                 estado.text = "Sesión iniciada. Pulsa Consultar; la app intentará abrir el formulario automáticamente."
@@ -926,13 +930,24 @@ private fun crearResumenSemana(): LinearLayout {
     }
 }
 
+private fun iniciarConsultaPendienteTrasLogin() {
+    val codigo = articuloPendienteTrasLogin.trim()
+    if (codigo.isBlank()) return
+    articuloPendienteTrasLogin = ""
+    articuloInput.setText(codigo)
+    articuloInput.setSelection(articuloInput.text.length)
+    webView.postDelayed({
+        if (!isFinishing && !isDestroyed && webView.url.orEmpty().contains("stockForm.aspx", true)) {
+            buscarArticulo()
+        } else {
+            articuloPendienteTrasLogin = codigo
+            estado.text = "Sesión recuperada. Preparando consulta de $codigo…"
+        }
+    }, 500)
+}
+
 private fun buscarArticulo() {
     val articulo = articuloInput.text.toString().trim()
-
-    if (webView.url?.contains("LoginForm.aspx", true) == true) {
-        mostrarFormularioLogin(false)
-        return
-    }
 
     if (articulo.isBlank()) {
         Toast.makeText(
@@ -940,6 +955,13 @@ private fun buscarArticulo() {
             "Introduce un código de artículo",
             Toast.LENGTH_SHORT
         ).show()
+        return
+    }
+
+    if (webView.url?.contains("LoginForm.aspx", true) == true) {
+        articuloPendienteTrasLogin = articulo
+        estado.text = "Sesión vencida. Inicia sesión para continuar con $articulo."
+        mostrarFormularioLogin(false)
         return
     }
 
@@ -1097,8 +1119,13 @@ private fun buscarArticulo() {
                 estado.text = "No se pudo iniciar la consulta."
 
                 val mensaje = when (resultado) {
-                    "\"formulario_no_encontrado\"" ->
-                        "No se encontró el formulario. Abre primero Consulta."
+                    "\"formulario_no_encontrado\"" -> {
+                        // La sesión puede haber expirado sin redirigir todavía al LoginForm.
+                        articuloPendienteTrasLogin = articulo
+                        estado.text = "Sesión no válida. Abriendo inicio de sesión…"
+                        webView.loadUrl(URL_LOGIN)
+                        "Sesión vencida. Inicia sesión y la consulta continuará automáticamente."
+                    }
 
                     "\"ajax_no_disponible\"" ->
                         "No se detectó el sistema AJAX de Aquarella. Recarga la página."
